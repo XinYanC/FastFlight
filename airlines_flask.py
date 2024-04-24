@@ -1,3 +1,4 @@
+# cd FOLDER
 # python ./airlines_flask.py
 
 from flask import Flask, render_template, request, url_for, redirect, session
@@ -43,8 +44,8 @@ def staffRegistration():
 @app.route('/loginAuth', methods=['GET', 'POST'])
 def loginAuth():
 	#grabs information from the forms
-	username = request.form['username']
-	password = request.form['password']
+	username = request.form['login_email']
+	password = request.form['login_password']
 
 	#cursor used to send queries
 	cursor = conn.cursor()
