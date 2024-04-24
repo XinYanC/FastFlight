@@ -1019,3 +1019,33 @@ footer p em {
 
 
 }
+
+.fullPager{
+    height: 100vh !important;
+}
+
+.full-length{
+    height: 100vh !important;
+}
+
+.sticky{
+    position: fixed;
+}
+
+#first-tab-group{
+    width: 55%;
+    float: right;
+}
+
+#contact-redirect-button{
+    bottom: 0px;
+    position: fixed;
+}
+
+.toggled_reg{
+    background-color: rgba(245, 173, 57, 0.5);
+}
+
+.toggled_reg i{
+    background-color: rgba(245, 173, 57, 0.3);
+}

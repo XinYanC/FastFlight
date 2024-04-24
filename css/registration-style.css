@@ -153,6 +153,14 @@ p {
   background-color: rgba(255, 225, 101, 0.3);
 }
 
+.toggled_reg{
+    background-color: rgba(245, 173, 57, 0.5);
+}
+
+.toggled_reg i{
+    background-color: rgba(245, 173, 57, 0.3);
+}
+
 
 .banner {
 	background-image: url(../img/banner-bg.jpg);
@@ -1018,4 +1026,21 @@ footer p em {
 
 
 
+}
+
+#first-tab-group{
+    width: 55%;
+    float: right;
+}
+
+.full-length{
+    height: 100vh !important;
+}
+
+.sticky{
+    position: fixed;
+}
+
+.fullPager{
+    height: 100vh !important;
 }

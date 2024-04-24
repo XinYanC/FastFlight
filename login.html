@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<!--
+
+Template 2093 Flight
+
+http://www.tooplate.com/view/2093-flight
+
+-->
+    	<title>Login</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+        <link rel="stylesheet" href="css/bootstrap.min.css">
+        <link rel="stylesheet" href="css/bootstrap-theme.min.css">
+        <link rel="stylesheet" href="css/fontAwesome.css">
+        <link rel="stylesheet" href="css/hero-slider.css">
+        <link rel="stylesheet" href="css/owl-carousel.css">
+        <link rel="stylesheet" href="css/login-style.css">
+
+        <link href="https://fonts.googleapis.com/css?family=Spectral:200,200i,300,300i,400,400i,500,500i,600,600i,700,700i,800,800i" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+
+        <script src="js/vendor/modernizr-2.8.3-respond-1.4.2.min.js"></script>
+    </head>
+
+<body>
+
+
+    <section class="banner fullPager" id="top">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 full-length sticky">
+                    <div class="left-side">
+                        <div class="logo">
+                            <a href="index.html"><img src="img/logo.png" alt="Flight Template"></a>
+                        </div>
+                        <div class="tabs-content">
+                            <!-- <h4>Choose Your Direction:</h4> -->
+                            <!-- <ul class="social-links">
+                                <li><a href="http://facebook.com">Find us on <em>Facebook</em><i class="fa fa-facebook"></i></a></li>
+                                <li><a href="http://youtube.com">Our <em>YouTube</em> Channel<i class="fa fa-youtube"></i></a></li>
+                                <li><a href="http://instagram.com">Follow our <em>instagram</em><i class="fa fa-instagram"></i></a></li>
+                            </ul> -->
+                            <h4>Toggle your Login</h4>
+                            <ul class="social-links">
+                                <li id="cust_login_tog"><a href="#"><em>Customer</em><i class="fa fa-chevron-right"></i></a></li>
+                                <li id="bagent_login_tog"><a href="#"><em>Booking Agent</em><i class="fa fa-chevron-right"></i></a></li>
+                                <li id="staff_login_tog"><a href="#"><em>Airline Staff</em><i class="fa fa-chevron-right"></i></a></li>
+                            </ul>
+                            <p style="color:white; display: inline;">Don't have an account? </p><a href="registrationToggle.html"><strong>Register Now!</strong></a>
+                        </div>
+                        <div class="page-direction-button">
+                            <button id="contact-redirect-button">
+                                <a href="#"><i class="fa fa-phone"></i>Questions?</a>
+                            </button>
+                        </div>
+                        <p id="redirectMessage" style="display: none; color:white;">Redirecting you to (123) 456-7890 now...</p>
+                    </div>
+                </div>
+                <div class="col-md-offset-1">
+                    <section id="first-tab-group" class="tabgroup">
+                        <div id="tab1">
+                            <div class="submit-form">
+                                <h4>Login to Your Account:</h4>
+                                <form id="form-submit" action="" method="get">
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <div class="radio-select">
+                                                <div class="row">
+                                                    <div class="col-md-4 col-sm-4 col-xs-4">
+                                                        <label for="cust_login">Customer</label>
+                                                        <input type="radio" name="cust_login" id="cust_login" value="cust_login" requiredonchange='this.form.()'>
+                                                    </div>
+                                                    <div class="col-md-4 col-sm-4 col-xs-4">
+                                                        <label for="bagent_login">Booking Agent</label>
+                                                        <input type="radio" name="bagent_login" id="bagent_login" value="bagent_login" requiredonchange='this.form.()'>
+                                                    </div>
+                                                    <div class="col-md-4 col-sm-4 col-xs-4">
+                                                        <label for="staff_login">Airline Staff</label>
+                                                        <input type="radio" name="staff_login" id="staff_login" value="staff_login" requiredonchange='this.form.()'>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <fieldset>
+                                                <label for="login_email">Username / Email:</label>
+                                                <!-- <input name="deparure" type="text" class="form-control date" id="deparure" placeholder="Select date..." required onchange='this.form.()'> -->
+                                                <input name="login_email" type="text" class="form-control date" id="login_email" placeholder="Enter username / email...">
+                                            </fieldset>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <fieldset>
+                                                <label for="login_password">Password:</label>
+                                                <!-- <input name="return" type="text" class="form-control date" id="return" placeholder="Select date..." required onchange='this.form.()'> -->
+                                                <input name="login_password" type="text" class="form-control date" id="login_password" placeholder="Enter password...">
+                                            </fieldset>
+                                        </div>
+                                        
+                                        <div class="col-md-12">
+                                            <fieldset>
+                                                <button type="submit" id="form-submit" class="btn">Login</button>
+                                            </fieldset>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    
+
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="js/vendor/jquery-1.11.2.min.js"><\/script>')</script>
+
+    <script src="js/vendor/bootstrap.min.js"></script>
+
+    <script src="js/plugins.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/login.js"></script>
+
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js" type="text/javascript"></script>
+    <script type="text/javascript">
+    $(document).ready(function() {
+        // navigation click actions 
+        $('.scroll-link').on('click', function(event){
+            event.preventDefault();
+            var sectionID = $(this).attr("data-id");
+            scrollToID('#' + sectionID, 750);
+        });
+        // scroll to top action
+        $('.scroll-top').on('click', function(event) {
+            event.preventDefault();
+            $('html, body').animate({scrollTop:0}, 'slow');         
+        });
+        // mobile nav toggle
+        $('#nav-toggle').on('click', function (event) {
+            event.preventDefault();
+            $('#main-nav').toggleClass("open");
+        });
+    });
+    // scroll function
+    function scrollToID(id, speed){
+        var offSet = 0;
+        var targetOffset = $(id).offset().top - offSet;
+        var mainNav = $('#main-nav');
+        $('html,body').animate({scrollTop:targetOffset}, speed);
+        if (mainNav.hasClass("open")) {
+            mainNav.css("height", "1px").removeClass("in").addClass("collapse");
+            mainNav.removeClass("open");
+        }
+    }
+    if (typeof console === "undefined") {
+        console = {
+            log: function() { }
+        };
+    }
+    </script>
+</body>
+</html>
