@@ -16,13 +16,21 @@ http://www.tooplate.com/view/2093-flight
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-        <link rel="stylesheet" href="css/bootstrap.min.css">
+        <!-- <link rel="stylesheet" href="css/bootstrap.min.css">
         <link rel="stylesheet" href="css/bootstrap-theme.min.css">
         <link rel="stylesheet" href="css/fontAwesome.css">
         <link rel="stylesheet" href="css/hero-slider.css">
         <link rel="stylesheet" href="css/owl-carousel.css">
         <link rel="stylesheet" href="css/datepicker.css">
-        <link rel="stylesheet" href="css/tooplate-style.css">
+        <link rel="stylesheet" href="css/tooplate-style.css"> -->
+
+        <link rel="stylesheet" href="{{url_for('static', filename='css/bootstrap.min.css')}}">
+        <link rel="stylesheet" href="{{url_for('static', filename='css/bootstrap-theme.min.css')}}">
+        <link rel="stylesheet" href="{{url_for('static', filename='css/fontAwesome.css')}}">
+        <link rel="stylesheet" href="{{url_for('static', filename='css/hero-slider.css')}}">
+        <link rel="stylesheet" href="{{url_for('static', filename='css/owl-carousel.css')}}">
+        <link rel="stylesheet" href="{{url_for('static', filename='css/datepicker.css')}}">
+        <link rel="stylesheet" href="{{url_for('static', filename='css/tooplate-style.css')}}">
 
         <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700,800" rel="stylesheet">
 
@@ -38,7 +46,7 @@ http://www.tooplate.com/view/2093-flight
                 <div class="col-md-5">
                     <div class="left-side">
                         <div class="logo">
-                            <img src="img/logo.png" alt="Flight Template">
+                            <img src="static/img/logo.png" alt="Flight Template">
                         </div>
                         <div class="tabs-content">
                             <!-- <h4>Choose Your Direction:</h4> -->
@@ -49,11 +57,11 @@ http://www.tooplate.com/view/2093-flight
                             </ul> -->
                             <h4>Login to check your history</h4>
                             <ul class="social-links">
-                                <li id="cust_login_but"><a href="./login.html"><em>Customer</em><i class="fa fa-chevron-right"></i></a></li>
-                                <li id="bagent_login_but"><a href="./login.html"><em>Booking Agent</em><i class="fa fa-chevron-right"></i></a></li>
-                                <li id="staff_login_but"><a href="./login.html"><em>Airline Staff</em><i class="fa fa-chevron-right"></i></a></li>
+                                <li id="cust_login_but"><a href="/login"><em>Customer</em><i class="fa fa-chevron-right"></i></a></li>
+                                <li id="bagent_login_but"><a href="/login"><em>Booking Agent</em><i class="fa fa-chevron-right"></i></a></li>
+                                <li id="staff_login_but"><a href="/login"><em>Airline Staff</em><i class="fa fa-chevron-right"></i></a></li>
                             </ul>
-                            <p style="color:white; display: inline;">Don't have an account? </p><a href="registrationToggle.html"><strong>Register Now!</strong></a>
+                            <p style="color:white; display: inline;">Don't have an account? </p><a href="/registrationToggle"><strong>Register Now!</strong></a>
                         </div>
                         <div class="page-direction-button">
                             <button id="contact-redirect-button">
@@ -708,9 +716,7 @@ http://www.tooplate.com/view/2093-flight
                     </ul>
                 </div>
                 <div class="col-md-12">
-                    <p>Copyright &copy; 2018 Flight Tour and Travel Company
-                
-                | Design: <em>Tooplate</em></p>
+                    <p>Copyright &copy; 2024 Fast Flight Company</p>
                 </div>
             </div>
         </div>
@@ -723,12 +729,12 @@ http://www.tooplate.com/view/2093-flight
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
     <script>window.jQuery || document.write('<script src="js/vendor/jquery-1.11.2.min.js"><\/script>')</script>
 
-    <script src="js/vendor/bootstrap.min.js"></script>
+    <script src="static/js/vendor/bootstrap.min.js"></script>
     
-    <script src="js/datepicker.js"></script>
-    <script src="js/plugins.js"></script>
-    <script src="js/main.js"></script>
-    <script src="js/added.js"></script>
+    <script src="static/js/datepicker.js"></script>
+    <script src="static/js/plugins.js"></script>
+    <script src="static/js/main.js"></script>
+    <script src="static/js/added.js"></script>
 
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js" type="text/javascript"></script>
     <script type="text/javascript">
