@@ -67,22 +67,22 @@ http://www.tooplate.com/view/2093-flight
                         <div id="tab1">
                             <div class="submit-form">
                                 <h4>Login to Your Account:</h4>
-                                <form id="form-submit" action="" method="get">
+                                <form id="loginSubmit" action="/loginSubmit" method="POST">
                                     <div class="row">
                                         <div class="col-md-12">
                                             <div class="radio-select">
                                                 <div class="row">
                                                     <div class="col-md-4 col-sm-4 col-xs-4">
                                                         <label for="cust_login">Customer</label>
-                                                        <input type="radio" name="cust_login" id="cust_login" value="cust_login" requiredonchange='this.form.()'>
+                                                        <input type="radio" name="user_type" id="cust_login" value="customer">
                                                     </div>
                                                     <div class="col-md-4 col-sm-4 col-xs-4">
                                                         <label for="bagent_login">Booking Agent</label>
-                                                        <input type="radio" name="bagent_login" id="bagent_login" value="bagent_login" requiredonchange='this.form.()'>
+                                                        <input type="radio" name="user_type" id="bagent_login" value="booking_agent">
                                                     </div>
                                                     <div class="col-md-4 col-sm-4 col-xs-4">
                                                         <label for="staff_login">Airline Staff</label>
-                                                        <input type="radio" name="staff_login" id="staff_login" value="staff_login" requiredonchange='this.form.()'>
+                                                        <input type="radio" name="user_type" id="staff_login" value="airline_staff">
                                                     </div>
                                                 </div>
                                             </div>
@@ -104,9 +104,10 @@ http://www.tooplate.com/view/2093-flight
                                         
                                         <div class="col-md-12">
                                             <fieldset>
-                                                <button type="submit" id="form-submit" class="btn">Login</button>
+                                                <button type="submit" id="loginSubmit" class="btn">Login</button>
                                             </fieldset>
                                         </div>
+                                        <p id="loginError" style="color: #d9534f; text-align: center;">{{loginError}}</p>
                                     </div>
                                 </form>
                             </div>
@@ -124,7 +125,7 @@ http://www.tooplate.com/view/2093-flight
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
     <script>window.jQuery || document.write('<script src="js/vendor/jquery-1.11.2.min.js"><\/script>')</script>
 
-    <script src="static/js/vendor/bootstrap.min.js"></script>
+    <!-- <script src="static/js/vendor/bootstrap.min.js"></script> -->
 
     <script src="static/js/plugins.js"></script>
     <script src="static/js/main.js"></script>
