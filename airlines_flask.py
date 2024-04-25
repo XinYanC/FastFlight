@@ -3,6 +3,7 @@
 
 from flask import Flask, render_template, request, url_for, redirect, session
 import pymysql, pymysql.cursors
+import hashlib
 
 #Initialize the app from Flask
 app = Flask(__name__)
@@ -59,20 +60,23 @@ def loginSubmit():
 	password = request.form['login_password']
 	user = request.form.get('user_type')
 
+	# hash the password using MD5
+	hashedPassword = hashlib.md5(password.encode()).hexdigest()
+
 	#cursor used to send queries
 	cursor = conn.cursor()
 
 	if (user == "customer"):
 		query = "SELECT * FROM customer WHERE cust_email = '{}' and c_password = '{}'"
-		cursor.execute(query.format(username, password))
+		cursor.execute(query.format(username, hashedPassword))
 		data = cursor.fetchone()
 	elif (user == "booking_agent"):
 		query = "SELECT * FROM booking_agent WHERE booking_agent_email = '{}' and ba_password = '{}'"
-		cursor.execute(query.format(username, password))
+		cursor.execute(query.format(username, hashedPassword))
 		data = cursor.fetchone()
 	elif (user == "airline_staff"):
 		query = "SELECT * FROM airline_staff WHERE username = '{}' and s_password = '{}'"
-		cursor.execute(query.format(username, password))
+		cursor.execute(query.format(username, hashedPassword))
 		data = cursor.fetchone()
 	# #executes query
 	# query = "SELECT * FROM user WHERE username = '{}' and password = '{}'"
@@ -119,6 +123,7 @@ def customerRegister():
 	cust_passCty = request.form.get('cust_passCty')
 	cust_dob = request.form['cust_dob']
 
+	hashedPassword = hashlib.md5(cust_password.encode()).hexdigest()
 
 	#cursor used to send queries
 	cursor = conn.cursor()
@@ -135,7 +140,7 @@ def customerRegister():
 		return render_template('register.html', registrationError = registrationError)
 	else:
 		ins = "INSERT INTO customer VALUES('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')"
-		cursor.execute(ins.format(cust_email, cust_name, cust_password, cust_bnum, cust_street, cust_city, cust_state, cust_number, cust_passNum, cust_passExp, cust_passCty, cust_dob))
+		cursor.execute(ins.format(cust_email, cust_name, hashedPassword, cust_bnum, cust_street, cust_city, cust_state, cust_number, cust_passNum, cust_passExp, cust_passCty, cust_dob))
 		conn.commit()
 		cursor.close()
 		registerSuccess = "Registration successful! Login in now"
@@ -147,6 +152,8 @@ def bookingAgentRegister():
 	bagent_email = request.form['bagent_email']
 	bagent_password = request.form['bagent_password']
 	bagent_id = request.form['bagent_id']
+
+	hashedPassword = hashlib.md5(bagent_password.encode()).hexdigest()
 
 	#cursor used to send queries
 	cursor = conn.cursor()
@@ -163,7 +170,7 @@ def bookingAgentRegister():
 		return render_template('register.html', registrationError = registrationError)
 	else:
 		ins = "INSERT INTO booking_agent VALUES('{}', '{}', '{}')"
-		cursor.execute(ins.format(bagent_email,bagent_password, bagent_id))
+		cursor.execute(ins.format(bagent_email, hashedPassword, bagent_id))
 		conn.commit()
 		cursor.close()
 		registerSuccess = "Registration successful! Login in now"
@@ -178,6 +185,8 @@ def staffRegister():
 	staff_lname = request.form['staff_lname']
 	staff_dob = request.form['staff_dob']
 	staff_airline = request.form.get('staff_airline')
+
+	hashedPassword = hashlib.md5(staff_password.encode()).hexdigest()
 
 	#cursor used to send queries
 	cursor = conn.cursor()
@@ -194,7 +203,7 @@ def staffRegister():
 		return render_template('register.html', registrationError = registrationError)
 	else:
 		ins = "INSERT INTO airline_staff VALUES('{}', '{}', '{}', '{}', '{}', '{}')"
-		cursor.execute(ins.format(staff_user, staff_password, staff_fname, staff_lname, staff_dob, staff_airline))
+		cursor.execute(ins.format(staff_user, hashedPassword, staff_fname, staff_lname, staff_dob, staff_airline))
 		conn.commit()
 		cursor.close()
 		registerSuccess = "Registration successful! Login in now"
