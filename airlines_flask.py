@@ -162,7 +162,7 @@ def bookingAgentRegister():
 		registrationError = "This user already exists"
 		return render_template('register.html', registrationError = registrationError)
 	else:
-		ins = "INSERT INTO user VALUES('{}', '{}', '{}')"
+		ins = "INSERT INTO booking_agent VALUES('{}', '{}', '{}')"
 		cursor.execute(ins.format(bagent_email,bagent_password, bagent_id))
 		conn.commit()
 		cursor.close()
@@ -193,7 +193,7 @@ def staffRegister():
 		registrationError = "This user already exists"
 		return render_template('register.html', registrationError = registrationError)
 	else:
-		ins = "INSERT INTO user VALUES('{}', '{}', '{}', '{}', '{}', '{}')"
+		ins = "INSERT INTO airline_staff VALUES('{}', '{}', '{}', '{}', '{}', '{}')"
 		cursor.execute(ins.format(staff_user, staff_password, staff_fname, staff_lname, staff_dob, staff_airline))
 		conn.commit()
 		cursor.close()
