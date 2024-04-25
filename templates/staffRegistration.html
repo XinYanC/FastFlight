@@ -63,7 +63,7 @@ http://www.tooplate.com/view/2093-flight
                             <div class="submit-form">
                                 <h4><em>Airline Staff Registration:</em></h4>
                                 
-                                <form id="form-submit" action="" method="get">
+                                <form id="staffRegister" action="/staffRegister" method="POST">
                                     <div class="row">
 
                                         <div class="col-md-8">
@@ -121,9 +121,10 @@ http://www.tooplate.com/view/2093-flight
                                         </div>
                                         <div class="col-md-12">
                                             <fieldset>
-                                                <button type="submit" id="form-submit" class="btn">Register</button>
+                                                <button type="submit" id="staffRegister" class="btn">Register</button>
                                             </fieldset>
                                         </div>
+                                        <p id="registrationError" style="color: #d9534f; text-align: center;">{{registrationError}}</p>
                                     </div>
                                 </form>
 

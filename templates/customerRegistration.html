@@ -63,7 +63,7 @@ http://www.tooplate.com/view/2093-flight
                             <div class="submit-form">
                                 <h4><em>Customer Registration:</em></h4>
                                 
-                                <form id="form-submit" action="" method="get">
+                                <form id="customerRegister" action="/customerRegister" method="POST">
                                     <div class="row">
 
                                         <div class="col-md-8">
@@ -185,8 +185,8 @@ http://www.tooplate.com/view/2093-flight
                                         </div>
                                     </div>
 
-                                <br>
-                                <h4><em>Passport Information:</em></h4>
+                                    <br>
+                                    <h4><em>Passport Information:</em></h4>
                                     <div class="row">
                                         <div class="col-md-6">
                                             <fieldset>
@@ -205,7 +205,7 @@ http://www.tooplate.com/view/2093-flight
                                             <fieldset>
                                                 <label for="cust_passCty">Passport Country:</label>
                                                 <!-- <select required name='from' onchange='this.form.()'> -->
-                                                    <select required name='cust_passCty' id="cust_state">
+                                                    <select required name='cust_passCty' id="cust_passCty">
                                                         <option value="">Select country...</option>
                                                         <option value="Afghanistan">Afghanistan</option>
                                                         <option value="Albania">Albania</option>
@@ -267,9 +267,10 @@ http://www.tooplate.com/view/2093-flight
                                         </div> -->
                                         <div class="col-md-12">
                                             <fieldset>
-                                                <button type="submit" id="form-submit" class="btn">Register</button>
+                                                <button type="submit" id="customerRegister" class="btn">Register</button>
                                             </fieldset>
                                         </div>
+                                        <p id="registrationError" style="color: #d9534f; text-align: center;">{{registrationError}}</p>
                                     </div>
                                 </form>
 
