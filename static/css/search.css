@@ -1,0 +1,25 @@
+.fixedPlane {
+    position: absolute;
+    top: 47%; 
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.suggestions-container {
+    position: absolute;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none; /* Initially hide the suggestion container */
+}
+
+.suggestions-container .suggestion {
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+.suggestions-container .suggestion:hover {
+    background-color: #f0f0f0;
+}
