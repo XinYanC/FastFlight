@@ -23,3 +23,9 @@
 .suggestions-container .suggestion:hover {
     background-color: #f0f0f0;
 }
+
+.search-flight-home-button{
+    padding-top: 10% !important;
+    width: 75%;
+    color: #ffe165 !important;
+}
