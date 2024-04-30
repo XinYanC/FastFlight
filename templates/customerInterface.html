@@ -23,6 +23,7 @@ http://www.tooplate.com/view/2093-flight
         <link rel="stylesheet" href="static/css/owl-carousel.css">
         <link rel="stylesheet" href="static/css/datepicker.css">
         <link rel="stylesheet" href="static/css/interface.css">
+        <link rel="stylesheet" href="static/css/search.css">
 
         <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700,800" rel="stylesheet">
 
@@ -63,66 +64,40 @@ http://www.tooplate.com/view/2093-flight
                         <p id="redirectMessage" style="display: none; color:white;">Redirecting you to (123) 456-7890 now...</p>
                     </div>
                 </div>
-                <div class="col-md-5 col-md-offset-1">
+                <div class="col-md-6 col-md-offset-1">
                     <section id="first-tab-group" class="tabgroup">
                         <div id="tab1">
                             <div class="submit-form">
                                 <h4>Check availability for <em>direction</em>:</h4>
-                                <form id="form-submit" action="" method="get">
+                                <form id="searchFlights" action="/searchFlights" method="POST">
                                     <div class="row">
                                         <div class="col-md-6">
                                             <fieldset>
-                                                <label for="from">From:</label>
-                                                <!-- <select required name='from' onchange='this.form.()'> -->
-                                                <select required name='from'>
-                                                    <option value="">Select a location...</option>
-                                                    <option value="Cambodia">Cambodia</option>
-                                                    <option value="Hong Kong">Hong Kong</option>
-                                                    <option value="India">India</option>
-                                                    <option value="Japan">Japan</option>
-                                                    <option value="Korea">Korea</option>
-                                                    <option value="Laos">Laos</option>
-                                                    <option value="Myanmar">Myanmar</option>
-                                                    <option value="Singapore">Singapore</option>
-                                                    <option value="Thailand">Thailand</option>
-                                                    <option value="Vietnam">Vietnam</option>
-                                                </select>
-                                            </fieldset>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <fieldset>
-                                                <label for="to">To:</label>
-                                                <!-- <select required name='to' onchange='this.form.()'> -->
-                                                <select required name='to'>
-                                                    <option value="">Select a location...</option>
-                                                    <option value="Cambodia">Cambodia</option>
-                                                    <option value="Hong Kong">Hong Kong</option>
-                                                    <option value="India">India</option>
-                                                    <option value="Japan">Japan</option>
-                                                    <option value="Korea">Korea</option>
-                                                    <option value="Laos">Laos</option>
-                                                    <option value="Myanmar">Myanmar</option>
-                                                    <option value="Singapore">Singapore</option>
-                                                    <option value="Thailand">Thailand</option>
-                                                    <option value="Vietnam">Vietnam</option>
-                                                </select>
-                                            </fieldset>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <fieldset>
-                                                <label for="departure">Departure date:</label>
+                                                <label for="sourceSearch">Source:</label>
                                                 <!-- <input name="deparure" type="text" class="form-control date" id="deparure" placeholder="Select date..." required onchange='this.form.()'> -->
-                                                <input name="deparure" type="text" class="form-control date" id="deparure" placeholder="Select date...">
+                                                <input name="sourceSearch" type="text" class="form-control date" id="sourceSearch" placeholder="From...">
+                                                <div id="suggestionsSource" class="suggestions-container"></div>
                                             </fieldset>
+                                        </div>
+                                        <div class="fixedPlane">
+                                            <i class="fa-solid fa-plane"></i>
                                         </div>
                                         <div class="col-md-6">
                                             <fieldset>
-                                                <label for="return">Return date:</label>
-                                                <!-- <input name="return" type="text" class="form-control date" id="return" placeholder="Select date..." required onchange='this.form.()'> -->
-                                                <input name="return" type="text" class="form-control date" id="return" placeholder="Select date...">
+                                                <label for="destinationSearch">Destination:</label>
+                                                <!-- <input name="deparure" type="text" class="form-control date" id="deparure" placeholder="Select date..." required onchange='this.form.()'> -->
+                                                <input name="destinationSearch" type="text" class="form-control date" id="destinationSearch" placeholder="To...">
+                                                <div id="destinationSource" class="suggestions-container"></div>
                                             </fieldset>
                                         </div>
-                                        <div class="col-md-6">
+                                        <div class="col-md-12">
+                                            <fieldset>
+                                                <label for="searchDate">Date:</label>
+                                                <!-- <input name="return" type="text" class="form-control date" id="return" placeholder="Select date..." required onchange='this.form.()'> -->
+                                                <input name="searchDate" type="date" class="form-control date" id="return" placeholder="Select date...">
+                                            </fieldset>
+                                        </div>
+                                        <!-- <div class="col-md-5">
                                             <div class="radio-select">
                                                 <div class="row">
                                                     <div class="col-md-6 col-sm-6 col-xs-6">
@@ -135,10 +110,10 @@ http://www.tooplate.com/view/2093-flight
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <div class="col-md-6">
+                                        </div> -->
+                                        <div class="col-md-12">
                                             <fieldset>
-                                                <button type="submit" id="form-submit" class="btn">Order Ticket Now</button>
+                                                <button type="submit" class="btn">Search</button>
                                             </fieldset>
                                         </div>
                                     </div>
