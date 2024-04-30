@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     listItems.forEach(function(item) {
         item.addEventListener('click', function() {
+
             // Remove 'toggled_reg' class from all list items and icons
             listItems.forEach(function(li) {
                 li.classList.remove('toggled_reg');
@@ -69,3 +70,4 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+

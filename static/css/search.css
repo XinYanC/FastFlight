@@ -12,7 +12,7 @@
     max-height: 200px;
     overflow-y: auto;
     z-index: 1000;
-    display: none; /* Initially hide the suggestion container */
+    display: none; 
 }
 
 .suggestions-container .suggestion {

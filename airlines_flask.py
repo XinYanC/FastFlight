@@ -62,6 +62,10 @@ def staffInterface():
 	staff_name = request.args.get('staff_name', 'again')  # Get staff_name from query parameter
 	return render_template('staffInterface.html', staff_name=staff_name)
 
+@app.route('/flightResult')
+def flightResult():
+	return render_template('flightResult.html')
+
 
 #Authenticates the login
 @app.route('/loginSubmit', methods=['GET', 'POST'])
@@ -253,6 +257,7 @@ def logout():
 
 @app.route('/get_airport_suggestions', methods=['POST'])
 def get_airport_suggestions():
+    print("Function get_airport_suggestions() called")  # Add this line for debugging
     search_query = request.form['searchQuery']
     suggestions = []
 
@@ -266,6 +271,51 @@ def get_airport_suggestions():
             print("Error fetching airport suggestions:", e)
 
     return jsonify(suggestions)
+
+@app.route('/searchFlights', methods=['POST'])
+def search_flights():
+    source_search = request.form['sourceSearch'].upper()  
+    destination_search = request.form['destinationSearch'].upper()  
+    search_date = request.form['searchDate']
+
+    print("Source Search:", source_search)
+    print("Destination Search:", destination_search)
+    print("Search Date:", search_date)
+
+    # Function to search for airport by multi-word city names
+    def search_airport(search_term):
+        words = search_term.split()  # Split input into words
+        airport_names = []
+        # Search for each word individually
+        with conn.cursor() as airport_cursor:
+            for word in words:
+                airport_sql = "SELECT airport_name FROM airport WHERE UPPER(airport_name) LIKE %s OR UPPER(airport_city) LIKE %s"
+                airport_cursor.execute(airport_sql, ('%' + word.upper() + '%', '%' + word.upper() + '%'))
+                result = airport_cursor.fetchone()
+                if result:
+                    airport_names.append(result[0])
+        return airport_names
+
+    source_airports = search_airport(source_search)
+    destination_airports = search_airport(destination_search)
+
+    if source_airports and destination_airports:
+        # Execute SQL query to find flights
+        with conn.cursor() as flight_cursor:
+            flight_sql = "SELECT flight_num, airline_name, price FROM flight WHERE UPPER(depart_airport_name) IN %s AND UPPER(arrival_airport_name) IN %s AND DATE(departure_time) = %s AND flight_status = 'upcoming'"
+            flight_cursor.execute(flight_sql, (tuple(source_airports), tuple(destination_airports), search_date))
+            flights = flight_cursor.fetchall()
+
+        print("Flights:", flights)
+
+        if flights:
+            return render_template('flightResult.html', flights=flights)
+        else:
+            return render_template('flightResult.html', message="No results found.")
+    else:
+        return render_template('flightResult.html', message="Source or destination not found.")
+
+
 
 
 app.secret_key = 'its a secret shhhhhhh'

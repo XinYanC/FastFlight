@@ -35,7 +35,7 @@ http://www.tooplate.com/view/2093-flight
 
         <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700,800" rel="stylesheet">
 
-        <!-- <script src="js/vendor/modernizr-2.8.3-respond-1.4.2.min.js"></script> -->
+        <script src="js/vendor/modernizr-2.8.3-respond-1.4.2.min.js"></script>
     </head>
 
 <body>
@@ -77,14 +77,14 @@ http://www.tooplate.com/view/2093-flight
                         <div id="tab1">
                             <div class="submit-form">
                                 <h4>Check availability for <em>direction</em>:</h4>
-                                <form id="searchFlights" action="/searchFlights" method="POST">
+                                <form id="form-submit" action="" method="get">
                                     <div class="row">
                                         <div class="col-md-6">
                                             <fieldset>
                                                 <label for="sourceSearch">Source:</label>
                                                 <!-- <input name="deparure" type="text" class="form-control date" id="deparure" placeholder="Select date..." required onchange='this.form.()'> -->
                                                 <input name="sourceSearch" type="text" class="form-control date" id="sourceSearch" placeholder="From...">
-                                                <div id="suggestionsSource" class="suggestions-container"></div>
+                                                <!-- <div id="suggestionsSource" class="suggestions-container"></div> -->
                                             </fieldset>
                                         </div>
                                         <div class="fixedPlane">
@@ -95,17 +95,17 @@ http://www.tooplate.com/view/2093-flight
                                                 <label for="destinationSearch">Destination:</label>
                                                 <!-- <input name="deparure" type="text" class="form-control date" id="deparure" placeholder="Select date..." required onchange='this.form.()'> -->
                                                 <input name="destinationSearch" type="text" class="form-control date" id="destinationSearch" placeholder="To...">
-                                                <div id="destinationSource" class="suggestions-container"></div>
+                                                <!-- <div id="destinationSource" class="suggestions-container"></div> -->
                                             </fieldset>
                                         </div>
                                         <div class="col-md-12">
                                             <fieldset>
-                                                <label for="searchDate">Date:</label>
+                                                <label for="return">Date:</label>
                                                 <!-- <input name="return" type="text" class="form-control date" id="return" placeholder="Select date..." required onchange='this.form.()'> -->
-                                                <input name="searchDate" type="date" class="form-control date" id="return" placeholder="Select date...">
+                                                <input name="return" type="date" class="form-control date" id="return" placeholder="Select date...">
                                             </fieldset>
                                         </div>
-                                        <!-- <div class="col-md-5">
+                                        <!-- <div class="col-md-6">
                                             <div class="radio-select">
                                                 <div class="row">
                                                     <div class="col-md-6 col-sm-6 col-xs-6">
@@ -121,7 +121,7 @@ http://www.tooplate.com/view/2093-flight
                                         </div> -->
                                         <div class="col-md-12">
                                             <fieldset>
-                                                <button type="submit" class="btn">Search</button>
+                                                <button type="submit" id="form-submit" class="btn">Search</button>
                                             </fieldset>
                                         </div>
                                     </div>
@@ -129,16 +129,293 @@ http://www.tooplate.com/view/2093-flight
                             </div>
                         </div>
                     </section>
-                    <section id="first-tab-group" class="tabgroup">
-                        <div></div>
-                    </section>
                 </div>
             </div>
         </div>
     </section>
 
 
-    <section class="services" id="upcomingFlights">
+
+    <div class="tabs-content" id="weather">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="section-heading">
+                        <h2>Check Weather For 5 NEXT Days</h2>
+                    </div>
+                </div>
+                <div class="wrapper">
+                    <div class="col-md-12">
+                        <div class="weather-content">
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <ul class="tabs clearfix" data-tabgroup="second-tab-group">
+                                        <li><a href="#monday" class="active">Monday</a></li>
+                                        <li><a href="#tuesday">Tuesday</a></li>
+                                        <li><a href="#wednesday">Wednesday</a></li>
+                                        <li><a href="#thursday">Thursday</a></li>
+                                        <li><a href="#friday">Friday</a></li>
+                                    </ul>    
+                                </div>
+                                <div class="col-md-12">
+                                    <section id="second-tab-group" class="weathergroup">
+                                        <div id="monday">
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <div class="weather-item">
+                                                        <h6>Myanmar</h6>
+                                                        <div class="weather-icon">
+                                                            <img src="img/weather-icon-03.png" alt="">
+                                                        </div>
+                                                        <span>32&deg;C</span>
+                                                        <ul class="time-weather">
+                                                            <li>6AM <span>26&deg;</span></li>
+                                                            <li>12PM <span>32&deg;</span></li>
+                                                            <li>6PM <span>28&deg;</span></li>
+                                                            <li>12AM <span>22&deg;</span></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="weather-item">
+                                                        <h6>Thailand</h6>
+                                                        <div class="weather-icon">
+                                                            <img src="img/weather-icon-02.png" alt="">
+                                                        </div>
+                                                        <span>28&deg;C</span>
+                                                        <ul class="time-weather">
+                                                            <li>6AM <span>20&deg;</span></li>
+                                                            <li>12PM <span>28&deg;</span></li>
+                                                            <li>6PM <span>26&deg;</span></li>
+                                                            <li>12AM <span>18&deg;</span></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="weather-item">
+                                                        <h6>India</h6>
+                                                        <div class="weather-icon">
+                                                            <img src="img/weather-icon-01.png" alt="">
+                                                        </div>
+                                                        <span>33&deg;C</span>
+                                                        <ul class="time-weather">
+                                                            <li>6AM <span>26&deg;</span></li>
+                                                            <li>12PM <span>33&deg;</span></li>
+                                                            <li>6PM <span>29&deg;</span></li>
+                                                            <li>12AM <span>27&deg;</span></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div id="tuesday">
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <div class="weather-item">
+                                                        <h6>Myanmar</h6>
+                                                        <div class="weather-icon">
+                                                            <img src="img/weather-icon-02.png" alt="">
+                                                        </div>
+                                                        <span>28&deg;C</span>
+                                                        <ul class="time-weather">
+                                                            <li>6AM <span>18&deg;</span></li>
+                                                            <li>12PM <span>27&deg;</span></li>
+                                                            <li>6PM <span>25&deg;</span></li>
+                                                            <li>12AM <span>17&deg;</span></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="weather-item">
+                                                        <h6>Thailand</h6>
+                                                        <div class="weather-icon">
+                                                            <img src="img/weather-icon-03.png" alt="">
+                                                        </div>
+                                                        <span>31&deg;C</span>
+                                                        <ul class="time-weather">
+                                                            <li>6AM <span>19&deg;</span></li>
+                                                            <li>12PM <span>28&deg;</span></li>
+                                                            <li>6PM <span>22&deg;</span></li>
+                                                            <li>12AM <span>18&deg;</span></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="weather-item">
+                                                        <h6>India</h6>
+                                                        <div class="weather-icon">
+                                                            <img src="img/weather-icon-01.png" alt="">
+                                                        </div>
+                                                        <span>26&deg;C</span>
+                                                        <ul class="time-weather">
+                                                            <li>6AM <span>19&deg;</span></li>
+                                                            <li>12PM <span>26&deg;</span></li>
+                                                            <li>6PM <span>22&deg;</span></li>
+                                                            <li>12AM <span>20&deg;</span></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div id="wednesday">
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <div class="weather-item">
+                                                        <h6>Myanmar</h6>
+                                                        <div class="weather-icon">
+                                                            <img src="img/weather-icon-03.png" alt="">
+                                                        </div>
+                                                        <span>31&deg;C</span>
+                                                        <ul class="time-weather">
+                                                            <li>6AM <span>19&deg;</span></li>
+                                                            <li>12PM <span>28&deg;</span></li>
+                                                            <li>6PM <span>22&deg;</span></li>
+                                                            <li>12AM <span>18&deg;</span></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="weather-item">
+                                                        <h6>Thailand</h6>
+                                                        <div class="weather-icon">
+                                                            <img src="img/weather-icon-01.png" alt="">
+                                                        </div>
+                                                        <span>34&deg;C</span>
+                                                        <ul class="time-weather">
+                                                            <li>6AM <span>28&deg;</span></li>
+                                                            <li>12PM <span>34&deg;</span></li>
+                                                            <li>6PM <span>30&deg;</span></li>
+                                                            <li>12AM <span>29&deg;</span></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="weather-item">
+                                                        <h6>India</h6>
+                                                        <div class="weather-icon">
+                                                            <img src="img/weather-icon-02.png" alt="">
+                                                        </div>
+                                                        <span>28&deg;C</span>
+                                                        <ul class="time-weather">
+                                                            <li>6AM <span>18&deg;</span></li>
+                                                            <li>12PM <span>27&deg;</span></li>
+                                                            <li>6PM <span>25&deg;</span></li>
+                                                            <li>12AM <span>17&deg;</span></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div id="thursday">
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <div class="weather-item">
+                                                        <h6>Myanmar</h6>
+                                                        <div class="weather-icon">
+                                                            <img src="img/weather-icon-01.png" alt="">
+                                                        </div>
+                                                        <span>27&deg;C</span>
+                                                        <ul class="time-weather">
+                                                            <li>6AM <span>21&deg;</span></li>
+                                                            <li>12PM <span>27&deg;</span></li>
+                                                            <li>6PM <span>22&deg;</span></li>
+                                                            <li>12AM <span>18&deg;</span></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="weather-item">
+                                                        <h6>Thailand</h6>
+                                                        <div class="weather-icon">
+                                                            <img src="img/weather-icon-02.png" alt="">
+                                                        </div>
+                                                        <span>28&deg;C</span>
+                                                        <ul class="time-weather">
+                                                            <li>6AM <span>18&deg;</span></li>
+                                                            <li>12PM <span>27&deg;</span></li>
+                                                            <li>6PM <span>25&deg;</span></li>
+                                                            <li>12AM <span>17&deg;</span></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="weather-item">
+                                                        <h6>India</h6>
+                                                        <div class="weather-icon">
+                                                            <img src="img/weather-icon-03.png" alt="">
+                                                        </div>
+                                                        <span>31&deg;C</span>
+                                                        <ul class="time-weather">
+                                                            <li>6AM <span>19&deg;</span></li>
+                                                            <li>12PM <span>28&deg;</span></li>
+                                                            <li>6PM <span>22&deg;</span></li>
+                                                            <li>12AM <span>18&deg;</span></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div id="friday">
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <div class="weather-item">
+                                                        <h6>Myanmar</h6>
+                                                        <div class="weather-icon">
+                                                            <img src="img/weather-icon-03.png" alt="">
+                                                        </div>
+                                                        <span>33&deg;C</span>
+                                                        <ul class="time-weather">
+                                                            <li>6AM <span>28&deg;</span></li>
+                                                            <li>12PM <span>33&deg;</span></li>
+                                                            <li>6PM <span>29&deg;</span></li>
+                                                            <li>12AM <span>27&deg;</span></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="weather-item">
+                                                        <h6>Thailand</h6>
+                                                        <div class="weather-icon">
+                                                            <img src="img/weather-icon-02.png" alt="">
+                                                        </div>
+                                                        <span>31&deg;C</span>
+                                                        <ul class="time-weather">
+                                                            <li>6AM <span>24&deg;</span></li>
+                                                            <li>12PM <span>31&deg;</span></li>
+                                                            <li>6PM <span>26&deg;</span></li>
+                                                            <li>12AM <span>23&deg;</span></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="weather-item">
+                                                        <h6>India</h6>
+                                                        <div class="weather-icon">
+                                                            <img src="img/weather-icon-01.png" alt="">
+                                                        </div>
+                                                        <span>28&deg;C</span>
+                                                        <ul class="time-weather">
+                                                            <li>6AM <span>24&deg;</span></li>
+                                                            <li>12PM <span>28&deg;</span></li>
+                                                            <li>6PM <span>26&deg;</span></li>
+                                                            <li>12AM <span>22&deg;</span></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </section>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <section class="services">
         <div class="container">
             <div class="row">
                 <div class="col-md-4">
@@ -205,7 +482,7 @@ http://www.tooplate.com/view/2093-flight
                                         <div id="owl-suiteroom" class="owl-carousel owl-theme">
                                             <div class="item">
                                                 <div class="suiteroom-item">
-                                                    <img src="static/img/suite-02.jpg" alt="">
+                                                    <img src="img/suite-02.jpg" alt="">
                                                     <div class="text-content">
                                                         <h4>Clean And Relaxing Room</h4>
                                                         <span>Aurora Resort</span>
@@ -214,7 +491,7 @@ http://www.tooplate.com/view/2093-flight
                                             </div>
                                             <div class="item">
                                                 <div class="suiteroom-item">
-                                                    <img src="static/img/suite-01.jpg" alt="">
+                                                    <img src="img/suite-01.jpg" alt="">
                                                     <div class="text-content">
                                                         <h4>Special Suite Room TV</h4>
                                                         <span>Khao Yai Hotel</span>
@@ -223,7 +500,7 @@ http://www.tooplate.com/view/2093-flight
                                             </div>
                                             <div class="item">
                                                 <div class="suiteroom-item">
-                                                    <img src="static/img/suite-03.jpg" alt="">
+                                                    <img src="img/suite-03.jpg" alt="">
                                                     <div class="text-content">
                                                         <h4>The Best Sitting</h4>
                                                         <span>Hotel Grand</span>
@@ -235,7 +512,7 @@ http://www.tooplate.com/view/2093-flight
                                 </div>
                             </div>
                             <div id="swimingpool">
-                                <img src="static/img/swiming-pool.jpg" alt="">
+                                <img src="img/swiming-pool.jpg" alt="">
                                 <div class="row">
                                     <div class="col-md-12">
                                         <div class="text-content">
@@ -246,7 +523,7 @@ http://www.tooplate.com/view/2093-flight
                                 </div>
                             </div>
                             <div id="massage">
-                                <img src="static/img/massage-service.jpg" alt="">
+                                <img src="img/massage-service.jpg" alt="">
                                 <div class="row">
                                     <div class="col-md-12">
                                         <div class="text-content">
@@ -257,7 +534,7 @@ http://www.tooplate.com/view/2093-flight
                                 </div>
                             </div>
                             <div id="fitness">
-                                <img src="static/img/fitness-service.jpg" alt="">
+                                <img src="img/fitness-service.jpg" alt="">
                                 <div class="row">
                                     <div class="col-md-12">
                                         <div class="text-content">
@@ -268,7 +545,7 @@ http://www.tooplate.com/view/2093-flight
                                 </div>
                             </div>
                             <div id="event">
-                                <img src="static/img/evening-event.jpg" alt="">
+                                <img src="img/evening-event.jpg" alt="">
                                 <div class="row">
                                     <div class="col-md-12">
                                         <div class="text-content">
@@ -300,7 +577,7 @@ http://www.tooplate.com/view/2093-flight
                     <div id="owl-mostvisited" class="owl-carousel owl-theme">
                         <div class="item col-md-12">
                             <div class="visited-item">
-                                <img src="static/img/place-01.jpg" alt="">
+                                <img src="img/place-01.jpg" alt="">
                                 <div class="text-content">
                                     <h4>River Views</h4>
                                     <span>New York</span>
@@ -309,7 +586,7 @@ http://www.tooplate.com/view/2093-flight
                         </div>
                         <div class="item col-md-12">
                             <div class="visited-item">
-                                <img src="static/img/place-02.jpg" alt="">
+                                <img src="img/place-02.jpg" alt="">
                                 <div class="text-content">
                                     <h4>Lorem ipsum dolor</h4>
                                     <span>Tokyo</span>
@@ -318,7 +595,7 @@ http://www.tooplate.com/view/2093-flight
                         </div>
                         <div class="item col-md-12">
                             <div class="visited-item">
-                                <img src="static/img/place-03.jpg" alt="">
+                                <img src="img/place-03.jpg" alt="">
                                 <div class="text-content">
                                     <h4>Proin dignissim</h4>
                                     <span>Paris</span>
@@ -327,7 +604,7 @@ http://www.tooplate.com/view/2093-flight
                         </div>
                         <div class="item col-md-12">
                             <div class="visited-item">
-                                <img src="static/img/place-04.jpg" alt="">
+                                <img src="img/place-04.jpg" alt="">
                                 <div class="text-content">
                                     <h4>Fusce sed ipsum</h4>
                                     <span>Hollywood</span>
@@ -336,7 +613,7 @@ http://www.tooplate.com/view/2093-flight
                         </div>
                         <div class="item col-md-12">
                             <div class="visited-item">
-                                <img src="static/img/place-02.jpg" alt="">
+                                <img src="img/place-02.jpg" alt="">
                                 <div class="text-content">
                                     <h4>Vivamus egestas</h4>
                                     <span>Tokyo</span>
@@ -345,7 +622,7 @@ http://www.tooplate.com/view/2093-flight
                         </div>
                         <div class="item col-md-12">
                             <div class="visited-item">
-                                <img src="static/img/place-01.jpg" alt="">
+                                <img src="img/place-01.jpg" alt="">
                                 <div class="text-content">
                                     <h4>Aliquam elit metus</h4>
                                     <span>New York</span>
@@ -354,7 +631,7 @@ http://www.tooplate.com/view/2093-flight
                         </div>
                         <div class="item col-md-12">
                             <div class="visited-item">
-                                <img src="static/img/place-03.jpg" alt="">
+                                <img src="img/place-03.jpg" alt="">
                                 <div class="text-content">
                                     <h4>Phasellus pharetra</h4>
                                     <span>Paris</span>
@@ -363,7 +640,7 @@ http://www.tooplate.com/view/2093-flight
                         </div>
                         <div class="item col-md-12">
                             <div class="visited-item">
-                                <img src="static/img/place-04.jpg" alt="">
+                                <img src="img/place-04.jpg" alt="">
                                 <div class="text-content">
                                     <h4>In in quam efficitur</h4>
                                     <span>Hollywood</span>
@@ -372,7 +649,7 @@ http://www.tooplate.com/view/2093-flight
                         </div>
                         <div class="item col-md-12">
                             <div class="visited-item">
-                                <img src="static/img/place-01.jpg" alt="">
+                                <img src="img/place-01.jpg" alt="">
                                 <div class="text-content">
                                     <h4>Sed faucibus odio</h4>
                                     <span>NEW YORK</span>
@@ -381,7 +658,7 @@ http://www.tooplate.com/view/2093-flight
                         </div>
                         <div class="item col-md-12">
                             <div class="visited-item">
-                                <img src="static/img/place-02.jpg" alt="">
+                                <img src="img/place-02.jpg" alt="">
                                 <div class="text-content">
                                     <h4>Donec varius porttitor</h4>
                                     <span>Tokyo</span>
@@ -434,7 +711,7 @@ http://www.tooplate.com/view/2093-flight
     <script src="static/js/plugins.js"></script>
     <script src="static/js/main.js"></script>
     <script src="static/js/added.js"></script>
-    <script src="static/js/search.js"></script>
+    <!-- <script src="static/js/search.js"></script> -->
 
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js" type="text/javascript"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
