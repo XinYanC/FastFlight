@@ -125,6 +125,10 @@ http://www.tooplate.com/view/2093-flight
             padding-right: 7%;
             font-weight: 500;
         }
+        .flightDepDate{
+            font-size: 1.1em;
+            padding-right: 7%;
+        }
     </style>
 
 <body>
@@ -220,6 +224,9 @@ http://www.tooplate.com/view/2093-flight
                                             </div>
                                         </div>
                                         <div class="flightTime">
+                                            {% if flightDepDate %}
+                                                <h5 class="flightDepDate">{{ flight[5] }}</h5>
+                                            {% endif %}
                                             <h5 class="flightDepTime">{{ flight[2] }}</h5>
                                             <img class="connector" src="static/img/connector2.png">
                                             <h5 class="flightArrTime">{{ flight[3] }}</h5>

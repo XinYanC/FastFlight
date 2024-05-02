@@ -4,6 +4,7 @@
 from flask import Flask, render_template, request, url_for, redirect, session, jsonify
 import pymysql, pymysql.cursors
 import hashlib
+from datetime import datetime
 
 #Initialize the app from Flask
 app = Flask(__name__)
@@ -17,7 +18,7 @@ conn = pymysql.connect(host='localhost',
 #Define a route to hello function
 @app.route('/')
 def home():
-    if 'username' in session:
+    if ('username' in session):
         if 'customer' in session:
             cursor = conn.cursor()
             cursor.execute("SELECT c_name FROM customer WHERE cust_email = %s", (session['username'],))
@@ -94,6 +95,10 @@ def staffInterface():
 def flightResult():
 	return render_template('flightResult.html')
 
+@app.route('/successfulBooking')
+def successfulBooking():
+	return render_template('successfulBooking.html')
+
 @app.route('/searchFlights')
 def searchFlights():
 	# flight_sql = """
@@ -110,37 +115,102 @@ def searchFlights():
 	# 				ORDER BY 
 	# 					departure_time
 	# 			"""
-	flight_sql = """
-		SELECT 
-			f.airline_name,
-			f.flight_num,
-			TIME_FORMAT(f.departure_time, '%H:%i') AS formatted_departure_time,
-			TIME_FORMAT(f.arrival_time, '%H:%i') AS formatted_arrival_time,
-			f.price,
-			a.total_seats,
-			(
-				SELECT COUNT(*)
-				FROM ticket t
-				WHERE t.flight_num = f.flight_num
-			) AS booked_seats
-		FROM 
-			flight f
-		INNER JOIN 
-			airplane a ON f.airplane_id = a.airplane_id
-		WHERE 
-			flight_status = 'upcoming'
-		HAVING 
-			booked_seats < a.total_seats
-		ORDER BY 
-			f.departure_time;
-	"""
+	if 'booking_agent' in session:
+		flight_sql = """
+						SELECT 
+							f.airline_name, 
+							f.flight_num, 
+							TIME_FORMAT(f.departure_time, '%H:%i') AS formatted_departure_time, 
+							TIME_FORMAT(f.arrival_time, '%H:%i') AS formatted_arrival_time, 
+							f.price,
+							DATE(f.departure_time) AS formatted_departure_date,
+							a.total_seats,
+							(
+								SELECT COUNT(*)
+								FROM ticket t
+								WHERE t.flight_num = f.flight_num
+							) AS booked_seats
+						FROM 
+							flight f
+						INNER JOIN 
+							airplane a ON f.airplane_id = a.airplane_id
+						INNER JOIN
+							works_for w ON f.airline_name = w.airline_name
+						WHERE 
+							AND flight_status = 'upcoming'
+							AND w.booking_agent_email = %s
+						HAVING 
+							booked_seats < a.total_seats
+						ORDER BY 
+							formatted_departure_date, formatted_departure_time;
+					"""
+	elif 'airline_staff' in session:
+		flight_sql = """
+						SELECT 
+							f.airline_name, 
+							f.flight_num, 
+							TIME_FORMAT(f.departure_time, '%H:%i') AS formatted_departure_time, 
+							TIME_FORMAT(f.arrival_time, '%H:%i') AS formatted_arrival_time, 
+							f.price,
+							DATE(f.departure_time) AS formatted_departure_date,
+							a.total_seats,
+							(
+								SELECT COUNT(*)
+								FROM ticket t
+								WHERE t.flight_num = f.flight_num
+							) AS booked_seats
+						FROM 
+							flight f
+						INNER JOIN 
+							airplane a ON f.airplane_id = a.airplane_id
+						INNER JOIN
+							airline_staff as ON f.airline_name = as.airline_name
+						WHERE 
+							AND flight_status = 'upcoming'
+							AND w.booking_agent_email = %s
+						HAVING 
+							booked_seats < a.total_seats
+						ORDER BY 
+							formatted_departure_date, formatted_departure_time;
+					"""
+	else:
+		flight_sql = """
+						SELECT 
+							f.airline_name,
+							f.flight_num,
+							TIME_FORMAT(f.departure_time, '%H:%i') AS formatted_departure_time,
+							TIME_FORMAT(f.arrival_time, '%H:%i') AS formatted_arrival_time,
+							f.price,
+							DATE(f.departure_time) AS formatted_departure_date,
+							a.total_seats,
+							(
+								SELECT COUNT(*)
+								FROM ticket t
+								WHERE t.flight_num = f.flight_num
+							) AS booked_seats
+						FROM 
+							flight f
+						INNER JOIN 
+							airplane a ON f.airplane_id = a.airplane_id
+						WHERE 
+							flight_status = 'upcoming'
+						HAVING 
+							booked_seats < a.total_seats
+						ORDER BY 
+							formatted_departure_date, formatted_departure_time;
+					"""
 
 	try:
 		# Execute the SQL query
 		with conn.cursor() as cursor:
-			cursor.execute(flight_sql)
+			if 'booking_agent' in session:
+				cursor.execute(flight_sql, session['booking_agent'])
+			elif 'airline_staff' in session:
+				cursor.execute(flight_sql, session['airline_staff'])
+			else:
+				cursor.execute(flight_sql)
 			flights = cursor.fetchall()
-			return render_template('searchFlights.html', flights_heading='Upcoming Flights', sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...', datePlaceholder='Select date...', flights=flights)
+			return render_template('searchFlights.html', flights_heading='Upcoming Flights', sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...', datePlaceholder='Select date...', flights=flights, flightDepDate=True)
 	finally:
         # Close the database connection
 		conn.close()
@@ -425,34 +495,102 @@ def searchFlightsResults():
 			# 					price
 			# 				"""
 			
-			flight_sql = """
-							SELECT 
-								f.airline_name, 
-								f.flight_num, 
-								TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
-								TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
-								f.price,
-								a.total_seats,
-								(
-									SELECT COUNT(*)
-									FROM ticket t
-									WHERE t.flight_num = f.flight_num
-								) AS booked_seats
-							FROM 
-								flight f
-							INNER JOIN 
-								airplane a ON f.airplane_id = a.airplane_id
-							WHERE 
-								UPPER(depart_airport_name) IN %s 
-								AND UPPER(arrival_airport_name) IN %s 
-								AND DATE(departure_time) = %s 
-								AND flight_status = 'upcoming'
-							HAVING 
-								booked_seats < a.total_seats
-							ORDER BY 
-								price;
-						"""
-			flight_cursor.execute(flight_sql, (tuple(source_airports), tuple(destination_airports), search_date))
+			if 'booking_agent' in session:
+				flight_sql = """
+								SELECT 
+									f.airline_name, 
+									f.flight_num, 
+									TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
+									TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
+									f.price,
+									DATE(f.departure_time) AS formatted_departure_date,
+									a.total_seats,
+									(
+										SELECT COUNT(*)
+										FROM ticket t
+										WHERE t.flight_num = f.flight_num
+									) AS booked_seats
+								FROM 
+									flight f
+								INNER JOIN 
+									airplane a ON f.airplane_id = a.airplane_id
+								INNER JOIN
+									works_for w ON f.airline_name = w.airline_name
+								WHERE 
+									UPPER(depart_airport_name) IN %s 
+									AND UPPER(arrival_airport_name) IN %s 
+									AND DATE(departure_time) = %s 
+									AND flight_status = 'upcoming'
+									AND w.booking_agent_email = %s
+								HAVING 
+									booked_seats < a.total_seats
+								ORDER BY 
+									price;
+							"""
+				flight_cursor.execute(flight_sql, (tuple(source_airports), tuple(destination_airports), search_date, session['booking_agent']))
+			elif 'airline_staff' in session:
+				flight_sql = """
+								SELECT 
+									f.airline_name, 
+									f.flight_num, 
+									TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
+									TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
+									f.price,
+									DATE(f.departure_time) AS formatted_departure_date,
+									a.total_seats,
+									(
+										SELECT COUNT(*)
+										FROM ticket t
+										WHERE t.flight_num = f.flight_num
+									) AS booked_seats
+								FROM 
+									flight f
+								INNER JOIN 
+									airplane a ON f.airplane_id = a.airplane_id
+								INNER JOIN
+									airline_staff as ON f.airline_name = as.airline_name
+								WHERE 
+									UPPER(depart_airport_name) IN %s 
+									AND UPPER(arrival_airport_name) IN %s 
+									AND DATE(departure_time) = %s 
+									AND flight_status = 'upcoming'
+									AND w.booking_agent_email = %s
+								HAVING 
+									booked_seats < a.total_seats
+								ORDER BY 
+									price;
+							"""
+				flight_cursor.execute(flight_sql, (tuple(source_airports), tuple(destination_airports), search_date, session['airline_staff']))
+			else:
+				flight_sql = """
+								SELECT 
+									f.airline_name, 
+									f.flight_num, 
+									TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
+									TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
+									f.price,
+									DATE(f.departure_time) AS formatted_departure_date,
+									a.total_seats,
+									(
+										SELECT COUNT(*)
+										FROM ticket t
+										WHERE t.flight_num = f.flight_num
+									) AS booked_seats
+								FROM 
+									flight f
+								INNER JOIN 
+									airplane a ON f.airplane_id = a.airplane_id
+								WHERE 
+									UPPER(depart_airport_name) IN %s 
+									AND UPPER(arrival_airport_name) IN %s 
+									AND DATE(departure_time) = %s 
+									AND flight_status = 'upcoming'
+								HAVING 
+									booked_seats < a.total_seats
+								ORDER BY 
+									price;
+							"""
+				flight_cursor.execute(flight_sql, (tuple(source_airports), tuple(destination_airports), search_date))
 			flights = flight_cursor.fetchall()
 
 		print("Flights:", flights)
@@ -464,8 +602,63 @@ def searchFlightsResults():
 	else:
 		return render_template('searchFlights.html', flights_heading='Error', message="Source or destination not found.")
 
+@app.route('/bookFlight', methods=['POST'])
+def bookFlight():
+	# Retrieve form data
+	flight_number = request.form['flight_number']
+
+	# Generate a unique ticket ID
+	ticket_id = generate_ticket_id()
+
+	# Check if the ticket ID already exists and generate a new one if necessary
+	while ticket_id_exists(ticket_id):
+		ticket_id = generate_ticket_id()
+
+	# Get the current time for booking_date
+	booking_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+	if 'username' in session:
+		if 'customer' in session:
+			cust_email = session['username']
+			booking_agent_id = None  # For customers, booking_agent_id is null
+
+            # Insert the ticket into the database
+			cursor = conn.cursor()
+			cursor.execute("INSERT INTO ticket (ticket_id, flight_num, cust_email, booking_agent_id, booking_date) VALUES (%s, %s, %s, %s, %s)",
+							(ticket_id, flight_number, cust_email, booking_agent_id, booking_date))
+			conn.commit()
+			cursor.close()
+
+			return render_template('successfulBooking.html')
+	else:
+		return render_template('login.html', registerSuccess = 'Log in to book your tickets!')
+
+def generate_ticket_id():
+    # Retrieve the last ticket ID based on the booking_date from the database
+    cursor = conn.cursor()
+    cursor.execute("SELECT ticket_id FROM ticket ORDER BY booking_date DESC LIMIT 1")
+    last_ticket_id = cursor.fetchone()
+
+    # If no ticket ID exists, set it to 0
+    if last_ticket_id is None:
+        last_ticket_id = 0
+    else:
+        last_ticket_id = int(last_ticket_id[0])
+
+    # Generate a new ticket ID by incrementing the last ticket ID
+    new_ticket_id = last_ticket_id + 1
+
+    # Pad the ticket ID with leading zeros to ensure it's 5 digits long
+    return str(new_ticket_id).zfill(5)
 
 
+def ticket_id_exists(ticket_id):
+    # Check if the ticket ID already exists in the database
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM ticket WHERE ticket_id = %s", (ticket_id,))
+    count = cursor.fetchone()[0]
+    cursor.close()
+    return count > 0
 
 app.secret_key = 'its a secret shhhhhhh'
 #Run the app on localhost port 5000
