@@ -30,6 +30,103 @@ http://www.tooplate.com/view/2093-flight
         <script src="js/vendor/modernizr-2.8.3-respond-1.4.2.min.js"></script>
     </head>
 
+    <style>
+        .card {
+            border: 1px solid #dee2e6; /* Light border */
+            border-radius: 8px; /* Rounded corners */
+        }
+
+        /* Style for card title */
+        /* .card-title {
+            font-size: 1.25rem; 
+            margin-bottom: 0.75rem; 
+        } */
+
+        /* Style for card text */
+        /* .card-text {
+            margin-bottom: 0.5rem; 
+        } */
+
+        .card-body {
+            /* display: flex;
+            justify-content: space-between;  */
+            display: grid; 
+            grid-template-columns: 2fr 2fr 1fr 1fr;
+            align-items: center;
+            padding: 1%;
+        }
+
+        .shadow-sm {
+            /* box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);  */
+            box-shadow: 0 0.5rem 0.35rem rgba(0, 0, 0, 0.075); 
+        }
+
+        .populate_flight{
+            padding-top: 1.5%;
+            padding-bottom: 7%;
+        }
+
+        .logoImg{
+            border-radius: 25%;
+            width: 25%;
+            height: auto;
+        }
+
+        .connector{
+            width: 35%;
+        }
+
+        .cardDiv{
+            padding-bottom: .5%;
+        }
+        .bookBtn{
+            background-color: #39566a;
+            color:white;
+            margin: 1% 5%;
+        }
+
+        .bookBtn:hover{
+            background-color: #39566a;
+            color:#ffe165;
+            margin: 1% 5%;
+        }
+
+        .flightComp{
+            display: flex; 
+            flex-direction: row; 
+            /* justify-content: center;  */
+            align-items: center; 
+            padding-left: 10%;
+        }
+        .flightInfo{
+            padding-left: 3%;
+        }
+        .flightAirline{
+            font-weight: bold; 
+            font-size: 1.2em; 
+        }
+        .flightDepTime {
+            font-weight: bold;
+            font-size: 1.1em; 
+            color: rgb(80, 125, 160); 
+        }
+        .flightArrTime {
+            font-weight: bold;
+            font-size: 1.1em; 
+            color: rgb(80, 125, 160); 
+        }
+        .flightTime{
+            display: flex; 
+            flex-direction: row; 
+            justify-content: center; 
+            align-items: center; 
+        }
+        .flightPrice{
+            padding-right: 7%;
+            font-weight: 500;
+        }
+    </style>
+
 <body>
 
     
@@ -52,7 +149,7 @@ http://www.tooplate.com/view/2093-flight
         <div class="container" id="searchBox" style="border: 1px solid #ccc; border-radius: 10px; padding: .5% 2%;">
             <div class="row">
                 <div class="submit-form">
-                    <form id="searchFlights" action="/searchFlights" method="POST">
+                    <form id="searchFlightsResults" action="/searchFlightsResults" method="POST">
                         <div class="col-md-4">
                             <fieldset>
                                 <label for="sourceSearch">Source:</label>
@@ -73,7 +170,7 @@ http://www.tooplate.com/view/2093-flight
                         <div class="col-md-2">
                             <fieldset>
                                 <label for="searchDate">Date:</label>
-                                <input name="searchDate" type="date" class="form-control date" id="return" placeholder="Select date...">
+                                <input name="searchDate" type="date" class="form-control date" id="return" placeholder="{{datePlaceholder}}">
                             </fieldset>
                         </div>
                         <div class="col-md-2">
@@ -90,7 +187,7 @@ http://www.tooplate.com/view/2093-flight
 
     <hr>
 
-    <div class="tabs-content">
+    <div class="tabs-content populate_flight">
         <!-- <div class="container" id="searchBox" style="border: 1px solid #ccc; border-radius: 10px; padding: .5% 2%;"> -->
         <div class="container">
             <div class="row">
@@ -100,19 +197,43 @@ http://www.tooplate.com/view/2093-flight
                     </div>
                 </div>
                 <div class="container">
+                    {% if message %}
                     <div class="row">
-                        {% if message %}
-                        <p>{{ message }}</p>
-                        {% else %}
-                        <ul>
-                            {% for flight in flights %}
-                            <!-- <li>Flight Number: {{ flight['flight_num'] }}, Airline: {{ flight['airline_name'] }}, Price: {{ flight['price'] }}</li> -->
-                            <li>Flight Number: {{ flight[0] }}, Airline: {{ flight[1] }}, Price: {{ flight[2] }}</li>
-                            {% endfor %}
-                        </ul>
-                        {% endif %}
+                        <div class="col-md-12">
+                            <p>{{ message }}</p>
+                        </div>
                     </div>
-                </div>
+                    {% else %}
+                    {% for flight in flights %}
+                    <div class="row mb-4 cardDiv">
+                        <div class="col-md-12">
+                            <div class="card shadow-sm">
+                                <div class="">
+                                    <form class="card-body" id="bookFlight" action="/bookFlight" method="POST">
+                                        <div class="flightComp">
+                                            <div class="logoImg">
+                                                <img src="static/img/{{flight[0]}}.png">
+                                            </div>
+                                            <div class="flightInfo">
+                                                <h5 class="flightAirline">{{ flight[0] }}</h5>
+                                                <h5 class="flightNum">No. {{ flight[1] }}</h5>
+                                            </div>
+                                        </div>
+                                        <div class="flightTime">
+                                            <h5 class="flightDepTime">{{ flight[2] }}</h5>
+                                            <img class="connector" src="static/img/connector2.png">
+                                            <h5 class="flightArrTime">{{ flight[3] }}</h5>
+                                        </div>
+                                        <h5 class="flightPrice">${{ flight[4] }}</h5>
+                                        <button type="submit" class="btn bookBtn">Book</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                </div>                
             </div>
         </div>
     </div>

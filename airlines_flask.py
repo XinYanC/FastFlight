@@ -68,7 +68,30 @@ def flightResult():
 
 @app.route('/searchFlights')
 def searchFlights():
-	return render_template('searchFlights.html', flights_heading='Upcoming Flights', sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...')
+	flight_sql = """
+		SELECT 
+			airline_name, 
+			flight_num, 
+			TIME_FORMAT(departure_time, '%H:%i') AS formatted_departure_time, 
+			TIME_FORMAT(arrival_time, '%H:%i') AS formatted_arrival_time,  
+			price 
+		FROM 
+			flight 
+		WHERE 
+			flight_status = 'upcoming'
+		ORDER BY 
+			departure_time
+	"""
+
+	try:
+		# Execute the SQL query
+		with conn.cursor() as cursor:
+			cursor.execute(flight_sql)
+			flights = cursor.fetchall()
+			return render_template('searchFlights.html', flights_heading='Upcoming Flights', sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...', datePlaceholder='Select date...', flights=flights)
+	finally:
+        # Close the database connection
+		conn.close()
 
 
 #Authenticates the login
@@ -276,8 +299,8 @@ def get_airport_suggestions():
 
     return jsonify(suggestions)
 
-@app.route('/searchFlights', methods=['POST'])
-def search_flights():
+@app.route('/searchFlightsResults', methods=['POST'])
+def searchFlightsResults():
 	source_search = request.form['sourceSearch'].upper()  
 	destination_search = request.form['destinationSearch'].upper()  
 	search_date = request.form['searchDate']
@@ -328,16 +351,31 @@ def search_flights():
 	if source_airports and destination_airports:
 		# Execute SQL query to find flights
 		with conn.cursor() as flight_cursor:
-			flight_sql = "SELECT flight_num, airline_name, price FROM flight WHERE UPPER(depart_airport_name) IN %s AND UPPER(arrival_airport_name) IN %s AND DATE(departure_time) = %s AND flight_status = 'upcoming'"
+			# flight_sql = "SELECT airline_name, flight_num, TIME(departure_time), TIME(arrival_time), price FROM flight WHERE UPPER(depart_airport_name) IN %s AND UPPER(arrival_airport_name) IN %s AND DATE(departure_time) = %s AND flight_status = 'upcoming'"
+			flight_sql = """
+							SELECT 
+								airline_name, 
+								flight_num, 
+								TIME_FORMAT(departure_time, '%%H:%%i') AS formatted_departure_time, 
+								TIME_FORMAT(arrival_time, '%%H:%%i') AS formatted_arrival_time, 
+								price 
+							FROM 
+								flight 
+							WHERE 
+								UPPER(depart_airport_name) IN %s 
+								AND UPPER(arrival_airport_name) IN %s 
+								AND DATE(departure_time) = %s 
+								AND flight_status = 'upcoming'
+						"""
 			flight_cursor.execute(flight_sql, (tuple(source_airports), tuple(destination_airports), search_date))
 			flights = flight_cursor.fetchall()
 
 		print("Flights:", flights)
 
 		if flights:
-			return render_template('searchFlights.html', sourcePlaceholder=source_search, destPlaceholder=destination_search, flights_heading='TO '+destination_search, flights=flights)
+			return render_template('searchFlights.html', sourcePlaceholder=source_search, destPlaceholder=destination_search, datePlaceholder=search_date, flights_heading='TO '+destination_search, flights=flights)
 		else:
-			return render_template('searchFlights.html', sourcePlaceholder=source_search, destPlaceholder=destination_search, flights_heading='TO '+destination_search, message="No results found.")
+			return render_template('searchFlights.html', sourcePlaceholder=source_search, destPlaceholder=destination_search, datePlaceholder=search_date, flights_heading='TO '+destination_search, message="No results found.")
 	else:
 		return render_template('searchFlights.html', flights_heading='Error', message="Source or destination not found.")
 
