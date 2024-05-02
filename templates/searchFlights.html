@@ -225,6 +225,12 @@ http://www.tooplate.com/view/2093-flight
                                             <h5 class="flightArrTime">{{ flight[3] }}</h5>
                                         </div>
                                         <h5 class="flightPrice">${{ flight[4] }}</h5>
+
+                                        <input type="hidden" name="airline" value="{{ flight[0] }}">
+                                        <input type="hidden" name="flight_number" value="{{ flight[1] }}">
+                                        <input type="hidden" name="departure_time" value="{{ flight[2] }}">
+                                        <input type="hidden" name="arrival_time" value="{{ flight[3] }}">
+                                        <input type="hidden" name="price" value="{{ flight[4] }}">
                                         <button type="submit" class="btn bookBtn">Book</button>
                                     </form>
                                 </div>

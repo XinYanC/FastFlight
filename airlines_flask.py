@@ -96,19 +96,43 @@ def flightResult():
 
 @app.route('/searchFlights')
 def searchFlights():
+	# flight_sql = """
+	# 				SELECT 
+	# 					airline_name, 
+	# 					flight_num, 
+	# 					TIME_FORMAT(departure_time, '%H:%i') AS formatted_departure_time, 
+	# 					TIME_FORMAT(arrival_time, '%H:%i') AS formatted_arrival_time,  
+	# 					price 
+	# 				FROM 
+	# 					flight 
+	# 				WHERE 
+	# 					flight_status = 'upcoming'
+	# 				ORDER BY 
+	# 					departure_time
+	# 			"""
 	flight_sql = """
 		SELECT 
-			airline_name, 
-			flight_num, 
-			TIME_FORMAT(departure_time, '%H:%i') AS formatted_departure_time, 
-			TIME_FORMAT(arrival_time, '%H:%i') AS formatted_arrival_time,  
-			price 
+			f.airline_name,
+			f.flight_num,
+			TIME_FORMAT(f.departure_time, '%H:%i') AS formatted_departure_time,
+			TIME_FORMAT(f.arrival_time, '%H:%i') AS formatted_arrival_time,
+			f.price,
+			a.total_seats,
+			(
+				SELECT COUNT(*)
+				FROM ticket t
+				WHERE t.flight_num = f.flight_num
+			) AS booked_seats
 		FROM 
-			flight 
+			flight f
+		INNER JOIN 
+			airplane a ON f.airplane_id = a.airplane_id
 		WHERE 
 			flight_status = 'upcoming'
+		HAVING 
+			booked_seats < a.total_seats
 		ORDER BY 
-			departure_time
+			f.departure_time;
 	"""
 
 	try:
@@ -383,22 +407,50 @@ def searchFlightsResults():
 		# Execute SQL query to find flights
 		with conn.cursor() as flight_cursor:
 			# flight_sql = "SELECT airline_name, flight_num, TIME(departure_time), TIME(arrival_time), price FROM flight WHERE UPPER(depart_airport_name) IN %s AND UPPER(arrival_airport_name) IN %s AND DATE(departure_time) = %s AND flight_status = 'upcoming'"
+			# flight_sql="""
+			# 				SELECT 
+			# 					airline_name, 
+			# 					flight_num, 
+			# 					TIME_FORMAT(departure_time, '%%H:%%i') AS formatted_departure_time, 
+			# 					TIME_FORMAT(arrival_time, '%%H:%%i') AS formatted_arrival_time, 
+			# 					price 
+			# 				FROM 
+			# 					flight 
+			# 				WHERE 
+			# 					UPPER(depart_airport_name) IN %s 
+			# 					AND UPPER(arrival_airport_name) IN %s 
+			# 					AND DATE(departure_time) = %s 
+			# 					AND flight_status = 'upcoming'
+			# 				ORDER BY 
+			# 					price
+			# 				"""
+			
 			flight_sql = """
 							SELECT 
-								airline_name, 
-								flight_num, 
-								TIME_FORMAT(departure_time, '%%H:%%i') AS formatted_departure_time, 
-								TIME_FORMAT(arrival_time, '%%H:%%i') AS formatted_arrival_time, 
-								price 
+								f.airline_name, 
+								f.flight_num, 
+								TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
+								TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
+								f.price,
+								a.total_seats,
+								(
+									SELECT COUNT(*)
+									FROM ticket t
+									WHERE t.flight_num = f.flight_num
+								) AS booked_seats
 							FROM 
-								flight 
+								flight f
+							INNER JOIN 
+								airplane a ON f.airplane_id = a.airplane_id
 							WHERE 
 								UPPER(depart_airport_name) IN %s 
 								AND UPPER(arrival_airport_name) IN %s 
 								AND DATE(departure_time) = %s 
 								AND flight_status = 'upcoming'
+							HAVING 
+								booked_seats < a.total_seats
 							ORDER BY 
-								price
+								price;
 						"""
 			flight_cursor.execute(flight_sql, (tuple(source_airports), tuple(destination_airports), search_date))
 			flights = flight_cursor.fetchall()
