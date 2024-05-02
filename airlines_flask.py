@@ -17,7 +17,35 @@ conn = pymysql.connect(host='localhost',
 #Define a route to hello function
 @app.route('/')
 def home():
+    if 'username' in session:
+        if 'customer' in session:
+            cursor = conn.cursor()
+            cursor.execute("SELECT c_name FROM customer WHERE cust_email = %s", (session['username'],))
+            c_name = cursor.fetchone()[0]
+            cursor.close()
+
+            # Split the full name into words
+            name_parts = c_name.split()
+            # Join all but the last word
+            first_name = ' '.join(name_parts[:-1])
+            
+            return redirect(url_for('customerInterface', cust_name=first_name))
+        elif 'booking_agent' in session:
+            cursor = conn.cursor()
+            cursor.execute("SELECT booking_agent_id FROM booking_agent WHERE booking_agent_email = %s", (session['username'],))
+            booking_agent_id = cursor.fetchone()[0]
+            cursor.close()
+
+            return redirect(url_for('bookingAgentInterface', booking_agent_id=booking_agent_id))
+        elif 'airline_staff' in session:
+            cursor = conn.cursor()
+            cursor.execute("SELECT first_name FROM airline_staff WHERE username = %s", (session['username'],))
+            first_name = cursor.fetchone()[0]
+            cursor.close()
+
+            return redirect(url_for('staffInterface', staff_name=first_name))
     return render_template('index.html')
+
 
 @app.route('/login')
 def login():
@@ -111,14 +139,17 @@ def loginSubmit():
 	data = None
 
 	if (user == "customer"):
+		session['customer'] = True
 		query = "SELECT * FROM customer WHERE cust_email = '{}' and c_password = '{}'"
 		cursor.execute(query.format(username, hashedPassword))
 		data = cursor.fetchone()
 	elif (user == "booking_agent"):
+		session['booking_agent'] = True
 		query = "SELECT * FROM booking_agent WHERE booking_agent_email = '{}' and ba_password = '{}'"
 		cursor.execute(query.format(username, hashedPassword))
 		data = cursor.fetchone()
 	elif (user == "airline_staff"):
+		session['airline_staff'] = True
 		query = "SELECT * FROM airline_staff WHERE username = '{}' and s_password = '{}'"
 		cursor.execute(query.format(username, hashedPassword))
 		data = cursor.fetchone()
@@ -366,6 +397,8 @@ def searchFlightsResults():
 								AND UPPER(arrival_airport_name) IN %s 
 								AND DATE(departure_time) = %s 
 								AND flight_status = 'upcoming'
+							ORDER BY 
+								price
 						"""
 			flight_cursor.execute(flight_sql, (tuple(source_airports), tuple(destination_airports), search_date))
 			flights = flight_cursor.fetchall()
