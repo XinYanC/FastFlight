@@ -4,7 +4,13 @@
 from flask import Flask, render_template, request, url_for, redirect, session, jsonify
 import pymysql, pymysql.cursors
 import hashlib
-from datetime import datetime
+from pymysql import NULL
+from datetime import datetime, timedelta
+from collections import defaultdict
+import calendar
+import json
+from dateutil.relativedelta import relativedelta
+
 
 #Initialize the app from Flask
 app = Flask(__name__)
@@ -120,8 +126,8 @@ def searchFlights():
 						SELECT 
 							f.airline_name, 
 							f.flight_num, 
-							TIME_FORMAT(f.departure_time, '%H:%i') AS formatted_departure_time, 
-							TIME_FORMAT(f.arrival_time, '%H:%i') AS formatted_arrival_time, 
+							TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
+							TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
 							f.price,
 							DATE(f.departure_time) AS formatted_departure_date,
 							a.total_seats,
@@ -137,7 +143,7 @@ def searchFlights():
 						INNER JOIN
 							works_for w ON f.airline_name = w.airline_name
 						WHERE 
-							AND flight_status = 'upcoming'
+							flight_status = 'upcoming'
 							AND w.booking_agent_email = %s
 						HAVING 
 							booked_seats < a.total_seats
@@ -149,7 +155,7 @@ def searchFlights():
 						SELECT 
 							f.airline_name, 
 							f.flight_num, 
-							TIME_FORMAT(f.departure_time, '%H:%i') AS formatted_departure_time, 
+							TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
 							TIME_FORMAT(f.arrival_time, '%H:%i') AS formatted_arrival_time, 
 							f.price,
 							DATE(f.departure_time) AS formatted_departure_date,
@@ -166,8 +172,7 @@ def searchFlights():
 						INNER JOIN
 							airline_staff as ON f.airline_name = as.airline_name
 						WHERE 
-							AND flight_status = 'upcoming'
-							AND w.booking_agent_email = %s
+							flight_status = 'upcoming'
 						HAVING 
 							booked_seats < a.total_seats
 						ORDER BY 
@@ -204,13 +209,206 @@ def searchFlights():
 		# Execute the SQL query
 		with conn.cursor() as cursor:
 			if 'booking_agent' in session:
-				cursor.execute(flight_sql, session['booking_agent'])
+				cursor.execute(flight_sql, session['username'])
 			elif 'airline_staff' in session:
-				cursor.execute(flight_sql, session['airline_staff'])
+				cursor.execute(flight_sql)
 			else:
 				cursor.execute(flight_sql)
 			flights = cursor.fetchall()
 			return render_template('searchFlights.html', flights_heading='Upcoming Flights', sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...', datePlaceholder='Select date...', flights=flights, flightDepDate=True)
+	finally:
+        # Close the database connection
+		conn.close()
+
+@app.route('/stats')
+def stats():
+	# days = request.form['timeRange']
+	# if 'booking_agent' in session:
+
+	if 'customer' in session:
+		now = datetime.now()
+		past_year = now - timedelta(days=365)
+		total_amount = 0
+
+		cursor = conn.cursor()
+		cursor.execute("""
+							SELECT SUM(f.price) AS total_amount, COUNT(*) AS num_flights
+							FROM ticket t
+							INNER JOIN flight f ON t.flight_num = f.flight_num
+							WHERE t.cust_email = %s
+								AND t.booking_date >= %s;
+						""", (session['username'], past_year))
+		total_amount = cursor.fetchall()[0]  # Fetch the total amount
+		cursor.close()
+
+		past_six_months = [now - timedelta(days=30*i) for i in range(1, 7)]
+		month_labels = [month.strftime("%B %Y") for month in past_six_months]
+		month_labels.reverse()
+
+		monthly_spending = []
+
+		cursor = conn.cursor()
+		for month in past_six_months:
+			start_of_month = month.replace(day=1)
+			end_of_month = month.replace(day=calendar.monthrange(month.year, month.month)[1])
+
+			cursor.execute("""
+				SELECT SUM(f.price) AS total_amount
+				FROM ticket t
+				INNER JOIN flight f ON t.flight_num = f.flight_num
+				WHERE t.cust_email = %s
+					AND DATE(t.booking_date) BETWEEN DATE(%s) AND DATE(%s);
+			""", (session['username'], start_of_month, end_of_month))
+			amount = cursor.fetchone()[0]
+			if (amount):
+				monthly_spending.append(amount)
+			else:
+				monthly_spending.append(0)
+
+		cursor.close()
+
+		monthly_spending.reverse()
+		# Convert Decimal objects to floating-point numbers
+		monthly_spending = [float(amount) if amount else 0.0 for amount in monthly_spending]
+
+		# Convert the lists to JSON format
+		month_labels_json = json.dumps(month_labels)
+		monthly_spending_json = json.dumps(monthly_spending)
+
+		return render_template('stats.html', stats_heading='My Spendings', total_amount=total_amount, now=now, past_year=past_year, monthly_spending=monthly_spending_json, month_labels=month_labels_json)
+	return render_template('stats.html')
+
+@app.route('/custStatRange', methods=['GET', 'POST'])
+def custStatRange():
+	searchFromDate = request.form['searchFromDate']
+	searchToDate = request.form['searchToDate']
+
+	if 'customer' in session:
+		now = datetime.now()
+		past_year = now - timedelta(days=365)
+		total_amount = 0
+
+		cursor = conn.cursor()
+		cursor.execute("""
+							SELECT SUM(f.price) AS total_amount, COUNT(*) AS num_flights
+							FROM ticket t
+							INNER JOIN flight f ON t.flight_num = f.flight_num
+							WHERE t.cust_email = %s
+								AND t.booking_date >= %s;
+						""", (session['username'], past_year))
+		total_amount = cursor.fetchall()[0]  # Fetch the total amount
+		cursor.close()
+
+		from_date = datetime.strptime(searchFromDate, "%Y-%m-%d")
+		to_date = datetime.strptime(searchToDate, "%Y-%m-%d")
+
+		months_between = [
+			from_date + relativedelta(months=i) for i in range((to_date.year - from_date.year) * 12 + to_date.month - from_date.month + 1)
+		]
+		months_between.reverse()  # Reverse the list to have the oldest month first
+
+		month_labels = [month.strftime("%B %Y") for month in months_between]
+
+		monthly_spending = []
+
+		cursor = conn.cursor()
+		for month in months_between:
+			start_of_month = month.replace(day=1)
+			end_of_month = month.replace(day=calendar.monthrange(month.year, month.month)[1])
+
+			cursor.execute("""
+				SELECT SUM(f.price) AS total_amount
+				FROM ticket t
+				INNER JOIN flight f ON t.flight_num = f.flight_num
+				WHERE t.cust_email = %s
+					AND DATE(t.booking_date) BETWEEN DATE(%s) AND DATE(%s);
+			""", (session['username'], start_of_month, end_of_month))
+			amount = cursor.fetchone()[0]
+			if amount:
+				monthly_spending.append(amount)
+			else:
+				monthly_spending.append(0)
+
+		cursor.close()
+
+		monthly_spending.reverse()
+		# Convert Decimal objects to floating-point numbers
+		monthly_spending = [float(amount) if amount else 0.0 for amount in monthly_spending]
+
+		# Convert the lists to JSON format
+		month_labels_json = json.dumps(month_labels)
+		monthly_spending_json = json.dumps(monthly_spending)
+
+		return render_template('stats.html', stats_heading='My Spendings', total_amount=total_amount, now=now, past_year=past_year, monthly_spending=monthly_spending_json, month_labels=month_labels_json)
+	return render_template('stats.html')
+
+@app.route('/viewFlights')
+def viewFlights():
+	# flight_sql = """
+	# 				SELECT 
+	# 					airline_name, 
+	# 					flight_num, 
+	# 					TIME_FORMAT(departure_time, '%H:%i') AS formatted_departure_time, 
+	# 					TIME_FORMAT(arrival_time, '%H:%i') AS formatted_arrival_time,  
+	# 					price 
+	# 				FROM 
+	# 					flight 
+	# 				WHERE 
+	# 					flight_status = 'upcoming'
+	# 				ORDER BY 
+	# 					departure_time
+	# 			"""
+	if 'booking_agent' in session:
+		flight_sql = """
+						SELECT 
+							f.airline_name, 
+							f.flight_num, 
+							TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
+							TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
+							f.price,
+							DATE(f.departure_time) AS formatted_departure_date,
+							c.c_name
+						FROM 
+							flight f
+						INNER JOIN 
+							ticket t ON f.flight_num = t.flight_num
+						INNER JOIN 
+							booking_agent b ON t.booking_agent_id = b.booking_agent_id
+						LEFT JOIN 
+							customer c ON t.cust_email = c.cust_email
+						WHERE 
+							b.booking_agent_email = %s
+						ORDER BY 
+							formatted_departure_date, formatted_departure_time;
+					"""
+	elif 'customer' in session:
+		flight_sql = """
+						SELECT 
+							f.airline_name, 
+							f.flight_num, 
+							TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
+							TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
+							f.price,
+							DATE(f.departure_time) AS formatted_departure_date
+						FROM 
+							flight f
+						INNER JOIN 
+							ticket t ON f.flight_num = t.flight_num
+						WHERE 
+							t.cust_email = %s
+						ORDER BY 
+							formatted_departure_date, formatted_departure_time;
+					"""
+
+	try:
+		# Execute the SQL query
+		with conn.cursor() as cursor:
+			cursor.execute(flight_sql, session['username'])
+			flights = cursor.fetchall()
+			if (flights):
+				return render_template('viewFlights.html', flights_heading='View Upcoming Flights', sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...', datePlaceholder='Select date...', flights=flights, flightDepDate=True)
+			else:
+				return render_template('viewFlights.html', flights_heading='No Upcoming Flights', sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...', datePlaceholder='Select date...')
 	finally:
         # Close the database connection
 		conn.close()
@@ -527,7 +725,7 @@ def searchFlightsResults():
 								ORDER BY 
 									price;
 							"""
-				flight_cursor.execute(flight_sql, (tuple(source_airports), tuple(destination_airports), search_date, session['booking_agent']))
+				flight_cursor.execute(flight_sql, (tuple(source_airports), tuple(destination_airports), search_date, session['username']))
 			elif 'airline_staff' in session:
 				flight_sql = """
 								SELECT 
@@ -554,13 +752,12 @@ def searchFlightsResults():
 									AND UPPER(arrival_airport_name) IN %s 
 									AND DATE(departure_time) = %s 
 									AND flight_status = 'upcoming'
-									AND w.booking_agent_email = %s
 								HAVING 
 									booked_seats < a.total_seats
 								ORDER BY 
 									price;
 							"""
-				flight_cursor.execute(flight_sql, (tuple(source_airports), tuple(destination_airports), search_date, session['airline_staff']))
+				flight_cursor.execute(flight_sql, (tuple(source_airports), tuple(destination_airports), search_date))
 			else:
 				flight_sql = """
 								SELECT 
@@ -602,6 +799,103 @@ def searchFlightsResults():
 	else:
 		return render_template('searchFlights.html', flights_heading='Error', message="Source or destination not found.")
 
+@app.route('/viewFlightsResults', methods=['POST'])
+def viewFlightsResults():
+	source_search = request.form['sourceSearch'].upper()  
+	destination_search = request.form['destinationSearch'].upper()  
+	search_date = request.form['searchDate']
+
+	print("Source Search:", source_search)
+	print("Destination Search:", destination_search)
+	print("Search Date:", search_date)
+
+	def search_airport(search_term):
+		with conn.cursor() as airport_cursor:
+			airport_sql = "SELECT airport_name FROM airport WHERE UPPER(airport_city) = %s"
+			airport_cursor.execute(airport_sql, (search_term,))
+			results = airport_cursor.fetchall()
+			airports = [result[0] if isinstance(result, tuple) else result['airport_name'] for result in results]
+			print("Airports in", search_term, ":", airports)
+			return airports
+
+	# If source_search is not a city, set source_airports to source_search
+	if not search_airport(source_search):
+		source_airports = [source_search]
+	else:
+		source_airports = search_airport(source_search)
+
+	# If destination_search is not a city, set destination_airports to destination_search
+	if not search_airport(destination_search):
+		destination_airports = [destination_search]
+	else:
+		destination_airports = search_airport(destination_search)
+
+
+	if source_airports and destination_airports:
+		# Execute SQL query to find flights
+		with conn.cursor() as flight_cursor:
+			if 'booking_agent' in session:
+				flight_sql = """
+								SELECT 
+									f.airline_name, 
+									f.flight_num, 
+									TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
+									TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
+									f.price,
+									DATE(f.departure_time) AS formatted_departure_date,
+									c.c_name
+								FROM 
+									flight f
+								INNER JOIN 
+									ticket t ON f.flight_num = t.flight_num
+								INNER JOIN 
+									booking_agent b ON t.booking_agent_id = b.booking_agent_id
+								LEFT JOIN 
+									customer c ON t.cust_email = c.cust_email
+								WHERE 
+									UPPER(depart_airport_name) IN %s 
+									AND UPPER(arrival_airport_name) IN %s 
+									AND DATE(departure_time) = %s 
+									AND b.booking_agent_email = %s
+								ORDER BY 
+									formatted_departure_date, formatted_departure_time;
+							"""
+			elif 'customer' in session:
+				flight_sql = """
+								SELECT 
+									f.airline_name, 
+									f.flight_num, 
+									TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
+									TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
+									f.price,
+									DATE(f.departure_time) AS formatted_departure_date
+								FROM 
+									flight f
+								INNER JOIN 
+									ticket t ON f.flight_num = t.flight_num
+								WHERE 
+									UPPER(depart_airport_name) IN %s 
+									AND UPPER(arrival_airport_name) IN %s 
+									AND DATE(departure_time) = %s 
+									AND t.cust_email = %s
+								ORDER BY 
+									formatted_departure_date, formatted_departure_time;
+
+							"""
+			flight_cursor.execute(flight_sql, (tuple(source_airports), tuple(destination_airports), search_date, session['username']))
+			flights = flight_cursor.fetchall()
+
+		print("Flights:", flights)
+
+		if flights:
+			return render_template('searchFlights.html', sourcePlaceholder=source_search, destPlaceholder=destination_search, datePlaceholder=search_date, flights_heading='TICKETS TO '+destination_search, flights=flights)
+		else:
+			return render_template('searchFlights.html', sourcePlaceholder=source_search, destPlaceholder=destination_search, datePlaceholder=search_date, flights_heading='TICKETS TO '+destination_search, message="No results found.")
+	else:
+		return render_template('searchFlights.html', flights_heading='Error', message="Source or destination not found.")
+
+
+
 @app.route('/bookFlight', methods=['POST'])
 def bookFlight():
 	# Retrieve form data
@@ -632,33 +926,34 @@ def bookFlight():
 			return render_template('successfulBooking.html')
 	else:
 		return render_template('login.html', registerSuccess = 'Log in to book your tickets!')
-
+	
 def generate_ticket_id():
-    # Retrieve the last ticket ID based on the booking_date from the database
-    cursor = conn.cursor()
-    cursor.execute("SELECT ticket_id FROM ticket ORDER BY booking_date DESC LIMIT 1")
-    last_ticket_id = cursor.fetchone()
+		# Retrieve the last ticket ID based on the booking_date from the database
+		cursor = conn.cursor()
+		cursor.execute("SELECT ticket_id FROM ticket ORDER BY booking_date DESC LIMIT 1")
+		last_ticket_id = cursor.fetchone()
 
-    # If no ticket ID exists, set it to 0
-    if last_ticket_id is None:
-        last_ticket_id = 0
-    else:
-        last_ticket_id = int(last_ticket_id[0])
+		# If no ticket ID exists, set it to 0
+		if last_ticket_id is None:
+			last_ticket_id = 0
+		else:
+			last_ticket_id = int(last_ticket_id[0])
 
-    # Generate a new ticket ID by incrementing the last ticket ID
-    new_ticket_id = last_ticket_id + 1
+		# Generate a new ticket ID by incrementing the last ticket ID
+		new_ticket_id = last_ticket_id + 1
 
-    # Pad the ticket ID with leading zeros to ensure it's 5 digits long
-    return str(new_ticket_id).zfill(5)
+		# Pad the ticket ID with leading zeros to ensure it's 5 digits long
+		return str(new_ticket_id).zfill(5)
 
 
 def ticket_id_exists(ticket_id):
-    # Check if the ticket ID already exists in the database
-    cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM ticket WHERE ticket_id = %s", (ticket_id,))
-    count = cursor.fetchone()[0]
-    cursor.close()
-    return count > 0
+	# Check if the ticket ID already exists in the database
+	cursor = conn.cursor()
+	cursor.execute("SELECT COUNT(*) FROM ticket WHERE ticket_id = %s", (ticket_id,))
+	count = cursor.fetchone()[0]
+	cursor.close()
+	return count > 0
+ 
 
 app.secret_key = 'its a secret shhhhhhh'
 #Run the app on localhost port 5000

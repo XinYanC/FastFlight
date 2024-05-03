@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<!--
+
+Template 2093 Flight
+
+http://www.tooplate.com/view/2093-flight
+
+-->
+    	<title>MyFastFlightStats</title>
+    
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+        <link rel="stylesheet" href="static/css/bootstrap.min.css">
+        <link rel="stylesheet" href="static/css/bootstrap-theme.min.css">
+        <link rel="stylesheet" href="static/css/fontAwesome.css">
+        <link rel="stylesheet" href="static/css/hero-slider.css">
+        <link rel="stylesheet" href="static/css/owl-carousel.css">
+        <link rel="stylesheet" href="static/css/datepicker.css">
+        <link rel="stylesheet" href="static/css/interface.css">
+        <link rel="stylesheet" href="static/css/search.css">
+
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700,800" rel="stylesheet">
+
+        <!-- <script src="js/vendor/modernizr-2.8.3-respond-1.4.2.min.js"></script> -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    </head>
+
+    <style>
+        .cardDiv{
+            padding: 0% 0% 5% 0%;
+            display: flex;
+            justify-content: space-between;
+        }
+        .card {
+            border: 1px solid #dee2e6; /* Light border */
+            border-radius: 8px; /* Rounded corners */
+            width: 45%;
+            padding: 3% 5%;
+            text-align: center;
+        }
+
+        /* Style for card title */
+        /* .card-title {
+            font-size: 1.25rem; 
+            margin-bottom: 0.75rem; 
+        } */
+
+        /* Style for card text */
+        /* .card-text {
+            margin-bottom: 0.5rem; 
+        } */
+
+        .card-body {
+            display: flex;
+        }
+
+        .shadow-sm {
+            /* box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);  */
+            box-shadow: 0 0.5rem 0.35rem rgba(0, 0, 0, 0.075); 
+        }
+
+    </style>
+
+<body>
+
+    
+    <section class="banner" id="top">
+        <a href="/">
+        <div class="container" style="background-color: rgb(0, 0, 0, 0.3);">
+            <div class="row">
+                <div class="col-md-12">
+                        <div class="logo">
+                            <img src="static/img/logo.png" alt="Flight Template" style="padding-bottom: 2%;">
+                        </div>
+                </div>
+            </div>
+        </div>
+        </a>
+    </section>
+
+    
+
+    <div class="tabs-content populate_flight">
+        <!-- <div class="container" id="searchBox" style="border: 1px solid #ccc; border-radius: 10px; padding: .5% 2%;"> -->
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12" style="padding-top: 5%;">
+                    <div class="section-heading">
+                        <h2>{{ stats_heading }}</h2>
+                    </div>
+                </div>
+                <div class="container">
+                    <div class="row cardDiv">
+                        <div class="card shadow-sm">
+                            <h4 style="text-align: center;"><strong>Track My Past Spendings</strong></h4>
+                            <!-- <select id="timeRange" name="timeRange">
+                                <option value="365">Past 1 year</option>
+                                <option value="183">Past 6 months</option>
+                            </select>                               -->
+                            <!-- HTML canvas element to render the pie chart -->
+                            <hr>
+                            <canvas id="myPieChart" style="margin: auto; display: inline-block;"></canvas>
+                            <input type="hidden" id="totalAmountInput" value="{{ total_amount[0] }}">
+                            <input type="hidden" id="numFlightsInput" value="{{ total_amount[1] }}">
+                            <input type="hidden" id="dates" value="{{ past_year.strftime('%m/%d/%Y') }} TO {{ now.strftime('%m/%d/%Y') }}">
+                        </div>
+                        <div class="card shadow-sm">
+                            <!-- <h4 style="text-align: center;"><strong>My Past Spendings</strong></h4> -->
+                            <canvas id="monthlySpendingChart" width="300" height="300"></canvas>
+                            <hr>
+                            <form id="custStatRange" action="/custStatRange" method="POST">
+                                <div class="row">
+                                    <div class="col-md-5">
+                                        <fieldset>
+                                            <label for="searchFromDate">From:</label>
+                                            <!-- <input name="return" type="text" class="form-control date" id="return" placeholder="Select date..." required onchange='this.form.()'> -->
+                                            <input name="searchFromDate" type="date" class="form-control date" id="return" placeholder="Select date...">
+                                        </fieldset>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <fieldset>
+                                            <label for="searchToDate">To:</label>
+                                            <!-- <input name="return" type="text" class="form-control date" id="return" placeholder="Select date..." required onchange='this.form.()'> -->
+                                            <input name="searchToDate" type="date" class="form-control date" id="return" placeholder="Select date...">
+                                        </fieldset>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label style="color: #f4f4f4;">-</label>
+                                        <fieldset>
+                                            <button type="submit" class="btn">Search</button>
+                                        </fieldset>
+                                    </div>
+                                </div>
+                            </form>
+                            <input type="hidden" id="monthLabels" value='{{ month_labels | tojson }}'>
+                            <input type="hidden" id="monthlySpendingData" value='{{ monthly_spending | tojson }}'>
+
+                            
+                        </div>
+                    </div>
+                </div>                
+            </div>
+        </div>
+    </div>
+    
+
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="primary-button">
+                        <a href="#" class="scroll-top">Back To Top</a>
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <ul class="social-icons">
+                        <li><a href="https://www.facebook.com/tooplate"><i class="fa fa-facebook"></i></a></li>
+                        <li><a href="#"><i class="fa fa-twitter"></i></a></li>
+                        <li><a href="#"><i class="fa fa-linkedin"></i></a></li>
+                        <li><a href="#"><i class="fa fa-rss"></i></a></li>
+                        <li><a href="#"><i class="fa fa-behance"></i></a></li>
+                    </ul>
+                </div>
+                <div class="col-md-12">
+                    <p>Copyright &copy; 2024 Fast Flight Company</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+
+    
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Get total amount and number of flights from Flask
+            var totalAmount = parseFloat($('#totalAmountInput').val());
+            var numFlights = parseInt($('#numFlightsInput').val());
+            var bookDates = $('#dates').val();
+
+            var ctx = document.getElementById('myPieChart').getContext('2d');
+            var myPieChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['FROM ' + bookDates],
+                    datasets: [{
+                        label: 'Total Amount Spent',
+                        data: [totalAmount], // Pass total amount data from Flask to HTML
+                        backgroundColor: ['rgba(255, 99, 132, 0.5)'], // Single color for the pie chart
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: false,
+                    cutoutPercentage: 80,
+                    animation: {
+                        animateScale: true,
+                        animateRotate: true
+                    },
+                    title: {
+                        display: false
+                    },
+                    legend: {
+                        display: false
+                    },
+                    tooltips: {
+                        enabled: false
+                    },
+                    plugins: {
+                        datalabels: {
+                            display: false
+                        }
+                    },
+                    plugins: {
+                        datalabels: {
+                            display: false
+                        }
+                    }
+                }
+
+            });
+            
+            var monthLabels = JSON.parse(document.getElementById('monthLabels').value);
+            var monthlySpendingData = JSON.parse(document.getElementById('monthlySpendingData').value);
+            console.log(monthLabels);
+            console.log('hello',monthlySpendingData);
+
+            var monthLabelsDATA = [];
+            var monthlySpendingDataDATA = [];
+            
+            // Split the string by space and push individual words into the new array
+            monthLabels = monthLabels.substring(2);
+            monthLabels = monthLabels.substring(0,monthLabels.length - 2);
+            var words = monthLabels.split('", "');
+            for (var j = 0; j < words.length; j++) {
+                monthLabelsDATA.push(words[j]);
+            };
+
+            monthlySpendingData = monthlySpendingData.substring(1);
+            monthlySpendingData = monthlySpendingData.substring(0,monthlySpendingData.length - 1);
+            var money = monthlySpendingData.split(', ');
+            for (var j = 0; j < money.length; j++) {
+                monthlySpendingDataDATA.push(money[j]);
+            };
+            console.log('hi', monthlySpendingDataDATA);
+
+
+            var ctx = document.getElementById('monthlySpendingChart').getContext('2d');
+            var monthlySpendingChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: monthLabelsDATA,
+                    datasets: [{
+                        label: 'Monthly Spending',
+                        data: monthlySpendingDataDATA, // Limit to the first 6 months
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        yAxes: [{
+                            ticks: {
+                                beginAtZero: true,
+                            }
+                        }]
+                    }
+                }
+            });
+            
+        });
+
+    </script>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+    <script src="https://kit.fontawesome.com/52ea471b6e.js" crossorigin="anonymous"></script>
+    <script>window.jQuery || document.write('<script src="js/vendor/jquery-1.11.2.min.js"><\/script>')</script>
+
+    <script src="static/js/vendor/bootstrap.min.js"></script>
+    
+    <script src="static/js/datepicker.js"></script>
+    <script src="static/js/plugins.js"></script>
+    <script src="static/js/main.js"></script>
+    <!-- <script src="static/js/added.js"></script> -->
+
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js" type="text/javascript"></script>
+    <script type="text/javascript">
+        $(document).ready(function() {
+
+            
+
+            // navigation click actions 
+            $('.scroll-link').on('click', function(event){
+                event.preventDefault();
+                var sectionID = $(this).attr("data-id");
+                scrollToID('#' + sectionID, 750);
+            });
+            // scroll to top action
+            $('.scroll-top').on('click', function(event) {
+                event.preventDefault();
+                $('html, body').animate({scrollTop:0}, 'slow');         
+            });
+            // mobile nav toggle
+            $('#nav-toggle').on('click', function (event) {
+                event.preventDefault();
+                $('#main-nav').toggleClass("open");
+            });
+        });
+        // scroll function
+        function scrollToID(id, speed){
+            var offSet = 0;
+            var targetOffset = $(id).offset().top - offSet;
+            var mainNav = $('#main-nav');
+            $('html,body').animate({scrollTop:targetOffset}, speed);
+            if (mainNav.hasClass("open")) {
+                mainNav.css("height", "1px").removeClass("in").addClass("collapse");
+                mainNav.removeClass("open");
+            }
+        }
+        if (typeof console === "undefined") {
+            console = {
+                log: function() { }
+            };
+        }
+    </script>
+    
+</body>
+</html>
