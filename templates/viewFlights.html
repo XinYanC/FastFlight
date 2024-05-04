@@ -214,45 +214,52 @@ http://www.tooplate.com/view/2093-flight
                         </div>
                     </div>
                     {% else %}
-                    {% for flight in flights %}
-                    <div class="row mb-4 cardDiv">
-                        <div class="col-md-12">
-                            <div class="card shadow-sm">
-                                <div class="">
-                                    <div class="card-body">
-                                        <div class="flightComp">
-                                            <div class="logoImg">
-                                                <img src="static/img/{{flight[0]}}.png">
+                        {% if successfulAdd %}
+                        <div class="row">
+                            <div class="col-md-12" style="color:rgb(41, 132, 41);">
+                                <p>{{ successfulAdd }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% for flight in flights %}
+                        <div class="row mb-4 cardDiv">
+                            <div class="col-md-12">
+                                <div class="card shadow-sm">
+                                    <div class="">
+                                        <div class="card-body">
+                                            <div class="flightComp">
+                                                <div class="logoImg">
+                                                    <img src="static/img/{{flight[0]}}.png">
+                                                </div>
+                                                <div class="flightInfo">
+                                                    <h5 class="flightAirline">{{ flight[0] }}</h5>
+                                                    <h5 class="flightNum">No. {{ flight[1] }}</h5>
+                                                </div>
                                             </div>
-                                            <div class="flightInfo">
-                                                <h5 class="flightAirline">{{ flight[0] }}</h5>
-                                                <h5 class="flightNum">No. {{ flight[1] }}</h5>
+                                            <div class="flightTime">
+                                                {% if flightDepDate %}
+                                                    <h5 class="flightDepDate">{{ flight[5] }}</h5>
+                                                {% endif %}
+                                                <h5 class="flightDepTime">{{ flight[2] }}</h5>
+                                                <img class="connector" src="static/img/connector2.png">
+                                                <h5 class="flightArrTime">{{ flight[3] }}</h5>
                                             </div>
-                                        </div>
-                                        <div class="flightTime">
-                                            {% if flightDepDate %}
-                                                <h5 class="flightDepDate">{{ flight[5] }}</h5>
+                                            {% if aCust %}
+                                                <h5 class="flightCustInfo" style="color: rgb(53, 142, 53)">Paid - ${{ flight[4] }}</h5>
+                                            {% elif aStaff %}
+                                                <form action="/showCustomer" method="POST">
+                                                    <input type="hidden" id="flight_number" name="flight_number" value="{{ flight[1] }}">
+                                                    <button type="submit" class="btn">View Customers</button>
+                                                </form>                                                                               
+                                            {% else %}
+                                                <h5 class="flightCustInfo">{{ flight[6] }}</h5>
                                             {% endif %}
-                                            <h5 class="flightDepTime">{{ flight[2] }}</h5>
-                                            <img class="connector" src="static/img/connector2.png">
-                                            <h5 class="flightArrTime">{{ flight[3] }}</h5>
-                                        </div>
-                                        {% if aCust %}
-                                            <h5 class="flightCustInfo" style="color: rgb(53, 142, 53)">Paid - ${{ flight[4] }}</h5>
-                                        {% elif aStaff %}
-                                            <form action="/showCustomer" method="POST">
-                                                <input type="hidden" id="flight_number" name="flight_number" value="{{ flight[1] }}">
-                                                <button type="submit" class="btn">View Customers</button>
-                                            </form>                                                                               
-                                        {% else %}
-                                            <h5 class="flightCustInfo">{{ flight[6] }}</h5>
-                                        {% endif %}
-                                        </div>
+                                            </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    {% endfor %}
+                        {% endfor %}
                     {% endif %}
                 </div>                
             </div>

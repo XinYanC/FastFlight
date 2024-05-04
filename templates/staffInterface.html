@@ -53,6 +53,9 @@ http://www.tooplate.com/view/2093-flight
                                 <li class="toggled_reg"><a href="/searchFlights"><em>Search Flights</em><i class="fa fa-chevron-right"></i></a></li>
                                 <li><a href="/viewFlights"><em>View My Flights</em><i class="fa fa-chevron-right"></i></a></li>
                                 <li><a href="/createFlight"><em>Create New Flight</em><i class="fa fa-chevron-right"></i></a></li>
+                                {% if staff_operator %}
+                                    <li><a href="/changeFlightStatus"><em>Change Flight Status</em><i class="fa fa-chevron-right"></i></a></li>
+                                {% endif %}
                             </ul>
                             <a href="/logout" style="color:rgb(133, 213, 237); display: inline;"><strong>Log out here!</strong></a>
                         </div>
