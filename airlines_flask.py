@@ -1487,6 +1487,64 @@ def addAirportRequest():
 
 	return render_template('searchFlights.html', successfulAdd='Successfully Added Airport ' + airport_name + ' From ' + airport_city, sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...')
 
+@app.route('/addPermission', methods=['GET', 'POST'])
+def addPermission():
+    return render_template('addPermission.html')
+
+@app.route('/addPermissionRequest', methods=['GET', 'POST'])
+def addPermissionRequest():
+	username = request.form['username']
+	permission = request.form['permission']
+
+	cursor = conn.cursor()
+	cursor.execute("SELECT airline_name FROM airline_staff WHERE username = %s", (session['username'],))
+	airline_name = cursor.fetchone()[0]
+	cursor.close()
+
+	cursor = conn.cursor()
+	sql = "SELECT 1 FROM airline_staff WHERE username = %s AND airline_name = %s LIMIT 1"
+	cursor.execute(sql, (username, airline_name))
+	result = cursor.fetchone()
+	
+	if result:
+		cursor.execute("INSERT INTO permission VALUES (%s, %s)",
+						(username, permission))
+		conn.commit()
+		cursor.close()
+		return render_template('searchFlights.html', successfulAdd='Successfully Granted ' + username + ' ' + permission + ' Permission', sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...')
+	else:
+		cursor.close()
+		return render_template('addPermission.html', successfulAdd='*Permission Failed - Staff ' + username + ' does not work for ' + airline_name)
+
+@app.route('/addBookingAgent', methods=['GET', 'POST'])
+def addBookingAgent():
+	cursor = conn.cursor()
+	cursor.execute("SELECT airline_name FROM airline_staff WHERE username = %s", (session['username'],))
+	airline_name = cursor.fetchone()[0]
+	cursor.close()
+	return render_template('addBookingAgent.html', airline_name=airline_name)
+
+@app.route('/addBookingAgentRequest', methods=['GET', 'POST'])
+def addBookingAgentRequest():
+	airline_name = request.form.get('airline_name')
+	booking_agent_email = request.form['booking_agent_email']
+
+	cursor = conn.cursor()
+	cursor = conn.cursor()
+	sql = "SELECT 1 FROM booking_agent WHERE booking_agent_email = %s LIMIT 1"
+	cursor.execute(sql, (booking_agent_email))
+	result = cursor.fetchone()
+
+	if result:
+		cursor.execute("INSERT INTO works_for VALUES (%s, %s)",
+						(airline_name, booking_agent_email))
+		conn.commit()
+		cursor.close()
+		return render_template('searchFlights.html', successfulAdd='Successfully Added ' + booking_agent_email + ' To ' + airline_name, sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...')
+	else:
+		cursor.close()
+		return render_template('addBookingAgent.html', successfulAdd=booking_agent_email + ' is not registered', airline_name=airline_name)
+
 app.secret_key = 'its a secret shhhhhhh'
 #Run the app on localhost port 5000
 #debug = True -> you don't have to restart flask
