@@ -98,16 +98,43 @@ http://www.tooplate.com/view/2093-flight
                 <div class="container">
                     <div class="row cardDiv">
                         <div class="card shadow-sm">
-                            <h4 style="text-align: center;"><strong>Track My Past Spendings</strong></h4>
+                            {% if stat_type == 'cust' %}
+                                <h4 style="text-align: center;"><strong>Track My Past Spendings</strong></h4>
+                            {% elif stat_type == 'ba' %}
+                                <h4 style="text-align: center;"><strong>Track My Past Commissions</strong></h4>
+                            {% endif %}
                             <!-- <select id="timeRange" name="timeRange">
                                 <option value="365">Past 1 year</option>
                                 <option value="183">Past 6 months</option>
                             </select>                               -->
                             <!-- HTML canvas element to render the pie chart -->
                             <hr>
+                            {% if stat_type == 'cust' and total_amount[0] == 0 %}
+                                <p style="color:rgb(175, 42, 42)">*No money spent</p>
+                            {% elif stat_type == 'ba' and total_amount[0][0] == 0 %}
+                                <p style="color:rgb(175, 42, 42)">*No commission made</p>
+                            {% endif %}
+
                             <canvas id="myPieChart" style="margin: auto; display: inline-block;"></canvas>
-                            <input type="hidden" id="totalAmountInput" value="{{ total_amount[0] }}">
-                            <input type="hidden" id="numFlightsInput" value="{{ total_amount[1] }}">
+
+                            <hr>
+                            {% if stat_type == 'cust' %}
+                                <h5 style="text-align: center;">Total Amount Spent: <strong>${{total_amount[0]}}</strong></h5>
+                            {% elif stat_type == 'ba' %}
+                                <h5 style="text-align: center;">Average Commission Received Per Ticket Booked: <strong>${{ '{:.2f}'.format(total_amount[0][1]) }}</strong></h5>
+                                <h5 style="text-align: center;">Total Number of Tickets Sold: <strong>{{total_amount[0][2]}} tickets</strong></h5>
+                            {% endif %}
+
+                            {% if stat_type == 'cust' %}
+                                <input type="hidden" id="totalAmountInput" value="{{ total_amount[0] }}">
+                            {% elif stat_type == 'ba' %}
+                                <input type="hidden" id="totalAmountInput" value="{{ total_amount[0][0] }}">
+                            {% endif %}
+                            {% if stat_type == 'cust' %}
+                                <input type="hidden" id="graphLabel" value="Monthly Spending">
+                            {% elif stat_type == 'ba' %}
+                                <input type="hidden" id="graphLabel" value="Daily Commissions">
+                            {% endif %}
                             <input type="hidden" id="dates" value="{{ past_year.strftime('%m/%d/%Y') }} TO {{ now.strftime('%m/%d/%Y') }}">
                         </div>
                         <div class="card shadow-sm">
@@ -141,7 +168,6 @@ http://www.tooplate.com/view/2093-flight
                             <input type="hidden" id="monthLabels" value='{{ month_labels | tojson }}'>
                             <input type="hidden" id="monthlySpendingData" value='{{ monthly_spending | tojson }}'>
 
-                            
                         </div>
                     </div>
                 </div>                
@@ -181,8 +207,9 @@ http://www.tooplate.com/view/2093-flight
         document.addEventListener('DOMContentLoaded', function () {
             // Get total amount and number of flights from Flask
             var totalAmount = parseFloat($('#totalAmountInput').val());
-            var numFlights = parseInt($('#numFlightsInput').val());
             var bookDates = $('#dates').val();
+            var graphLabel = $('#graphLabel').val();
+            console.log(totalAmount)
 
             var ctx = document.getElementById('myPieChart').getContext('2d');
             var myPieChart = new Chart(ctx, {
@@ -229,27 +256,39 @@ http://www.tooplate.com/view/2093-flight
             
             var monthLabels = JSON.parse(document.getElementById('monthLabels').value);
             var monthlySpendingData = JSON.parse(document.getElementById('monthlySpendingData').value);
-            console.log(monthLabels);
-            console.log('hello',monthlySpendingData);
 
             var monthLabelsDATA = [];
             var monthlySpendingDataDATA = [];
-            
-            // Split the string by space and push individual words into the new array
+
+            // Check if monthLabels is not null and it has a length property
             monthLabels = monthLabels.substring(2);
             monthLabels = monthLabels.substring(0,monthLabels.length - 2);
             var words = monthLabels.split('", "');
             for (var j = 0; j < words.length; j++) {
                 monthLabelsDATA.push(words[j]);
             };
+            
 
-            monthlySpendingData = monthlySpendingData.substring(1);
-            monthlySpendingData = monthlySpendingData.substring(0,monthlySpendingData.length - 1);
-            var money = monthlySpendingData.split(', ');
-            for (var j = 0; j < money.length; j++) {
-                monthlySpendingDataDATA.push(money[j]);
-            };
-            console.log('hi', monthlySpendingDataDATA);
+            var monthlySpendingData1 = monthlySpendingData.substring(1, monthlySpendingData.length - 1).split(', '); // Remove the brackets and split by comma
+            for (var i = 0; i < monthlySpendingData1.length; i++) {
+                monthlySpendingDataDATA.push(parseFloat(monthlySpendingData1[i])); // Parse each item and push it to the new list
+            }
+
+            // Split the string by space and push individual words into the new array
+            // monthLabels = monthLabels.substring(2);
+            // monthLabels = monthLabels.substring(0,monthLabels.length - 2);
+            // var words = monthLabels.split('", "');
+            // for (var j = 0; j < words.length; j++) {
+            //     monthLabelsDATA.push(words[j]);
+            // };
+
+            // monthlySpendingData = monthlySpendingData.substring(1);
+            // monthlySpendingData = monthlySpendingData.substring(0,monthlySpendingData.length - 1);
+            // var money = monthlySpendingData.split(', ');
+            // for (var j = 0; j < money.length; j++) {
+            //     monthlySpendingDataDATA.push(money[j]);
+            // };
+            // console.log('hi', monthlySpendingDataDATA);
 
 
             var ctx = document.getElementById('monthlySpendingChart').getContext('2d');
@@ -258,7 +297,7 @@ http://www.tooplate.com/view/2093-flight
                 data: {
                     labels: monthLabelsDATA,
                     datasets: [{
-                        label: 'Monthly Spending',
+                        label: graphLabel,
                         data: monthlySpendingDataDATA, // Limit to the first 6 months
                         backgroundColor: 'rgba(54, 162, 235, 0.5)',
                         borderColor: 'rgba(54, 162, 235, 1)',

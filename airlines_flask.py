@@ -223,16 +223,68 @@ def searchFlights():
 @app.route('/stats')
 def stats():
 	# days = request.form['timeRange']
-	# if 'booking_agent' in session:
+	if 'booking_agent' in session:
+		now = datetime.now()
+		past_thirty = now - timedelta(days=30)
+		total_amount = 0
 
-	if 'customer' in session:
+		cursor = conn.cursor()
+		cursor.execute("SELECT booking_agent_id FROM booking_agent WHERE booking_agent_email = %s", (session['username'],))
+		booking_agent_id = cursor.fetchone()[0]
+		cursor.close()
+
+		cursor = conn.cursor()
+		cursor.execute("""
+							SELECT IFNULL(SUM(f.price), 0) AS total_amount, 
+								IFNULL(AVG(f.price), 0) AS avg_amount, 
+								COUNT(*) AS num_flights
+							FROM ticket t
+							INNER JOIN flight f ON t.flight_num = f.flight_num
+							WHERE t.booking_agent_id = %s
+							AND t.booking_date >= %s;
+						""", (booking_agent_id, past_thirty))
+		ba_stats = cursor.fetchall()
+		cursor.close()
+
+		past_thirty_days = [now - timedelta(days=i) for i in range(1, 30)]
+		day_labels = [day.strftime("%m/%d") for day in past_thirty_days]
+		day_labels.reverse()
+
+		daily_commission = []
+
+		cursor = conn.cursor()
+		for day in past_thirty_days:
+			cursor.execute("""
+				SELECT (f.price * .1) AS commission
+				FROM ticket t
+				INNER JOIN flight f ON t.flight_num = f.flight_num
+				WHERE t.booking_agent_id = %s;
+			""", (booking_agent_id))
+			amount = cursor.fetchone()
+			if (amount):
+				daily_commission.append(amount)
+			else:
+				daily_commission.append(0)
+
+		cursor.close()
+
+		daily_commission.reverse()
+		# Convert Decimal objects to floating-point numbers
+		daily_commission = [float(amount) if amount else 0.0 for amount in daily_commission]
+
+		# Convert the lists to JSON format
+		day_labels_json = json.dumps(day_labels)
+		daily_commission_json = json.dumps(daily_commission)
+		
+		return render_template('stats.html', stats_heading='My Commissions', total_amount=ba_stats, now=now, past_year=past_thirty, monthly_spending=daily_commission_json, month_labels=day_labels_json, stat_type='ba')
+	elif 'customer' in session:
 		now = datetime.now()
 		past_year = now - timedelta(days=365)
 		total_amount = 0
 
 		cursor = conn.cursor()
 		cursor.execute("""
-							SELECT SUM(f.price) AS total_amount, COUNT(*) AS num_flights
+							SELECT SUM(f.price) AS total_amount
 							FROM ticket t
 							INNER JOIN flight f ON t.flight_num = f.flight_num
 							WHERE t.cust_email = %s
@@ -253,7 +305,7 @@ def stats():
 			end_of_month = month.replace(day=calendar.monthrange(month.year, month.month)[1])
 
 			cursor.execute("""
-				SELECT SUM(f.price) AS total_amount
+				SELECT IFNULL(SUM(f.price), 0) AS total_amount
 				FROM ticket t
 				INNER JOIN flight f ON t.flight_num = f.flight_num
 				WHERE t.cust_email = %s
@@ -275,7 +327,7 @@ def stats():
 		month_labels_json = json.dumps(month_labels)
 		monthly_spending_json = json.dumps(monthly_spending)
 
-		return render_template('stats.html', stats_heading='My Spendings', total_amount=total_amount, now=now, past_year=past_year, monthly_spending=monthly_spending_json, month_labels=month_labels_json)
+		return render_template('stats.html', stats_heading='My Spendings', total_amount=total_amount, now=now, past_year=past_year, monthly_spending=monthly_spending_json, month_labels=month_labels_json, stat_type='cust')
 	return render_template('stats.html')
 
 @app.route('/custStatRange', methods=['GET', 'POST'])
@@ -283,21 +335,69 @@ def custStatRange():
 	searchFromDate = request.form['searchFromDate']
 	searchToDate = request.form['searchToDate']
 
-	if 'customer' in session:
+	if 'booking_agent' in session:
 		now = datetime.now()
-		past_year = now - timedelta(days=365)
+		# past_thirty = now - timedelta(days=30)
 		total_amount = 0
+
+		from_date = datetime.strptime(searchFromDate, "%Y-%m-%d")
+		to_date = datetime.strptime(searchToDate, "%Y-%m-%d")
+
+		days_between = (to_date - from_date).days + 1
+		date_range = [to_date - timedelta(days=i) for i in range(days_between)]
+		date_range.reverse()  
+
+		day_labels = [day.strftime("%m/%d") for day in date_range]
+
+		daily_commission = []
+
+		cursor = conn.cursor()
+		cursor.execute("SELECT booking_agent_id FROM booking_agent WHERE booking_agent_email = %s", (session['username'],))
+		booking_agent_id = cursor.fetchone()[0]
+		cursor.close()
 
 		cursor = conn.cursor()
 		cursor.execute("""
-							SELECT SUM(f.price) AS total_amount, COUNT(*) AS num_flights
+							SELECT IFNULL(SUM(f.price), 0) AS total_amount, 
+								IFNULL(AVG(f.price), 0) AS avg_amount, 
+								COUNT(*) AS num_flights
 							FROM ticket t
 							INNER JOIN flight f ON t.flight_num = f.flight_num
-							WHERE t.cust_email = %s
-								AND t.booking_date >= %s;
-						""", (session['username'], past_year))
-		total_amount = cursor.fetchall()[0]  # Fetch the total amount
+							WHERE t.booking_agent_id = %s
+								AND DATE(t.booking_date) BETWEEN DATE(%s) AND DATE(%s);
+						""", (booking_agent_id, from_date, to_date))
+		ba_stats = cursor.fetchall()
 		cursor.close()
+
+		cursor = conn.cursor()
+		for day in date_range:
+			cursor.execute("""
+				SELECT (f.price * .1) AS commission
+				FROM ticket t
+				INNER JOIN flight f ON t.flight_num = f.flight_num
+				WHERE t.booking_agent_id = %s;
+			""", (booking_agent_id))
+			amount = cursor.fetchone()
+			if (amount):
+				daily_commission.append(amount)
+			else:
+				daily_commission.append(0)
+
+		cursor.close()
+
+		daily_commission.reverse()
+		# Convert Decimal objects to floating-point numbers
+		daily_commission = [float(amount) if amount else 0.0 for amount in daily_commission]
+
+		# Convert the lists to JSON format
+		day_labels_json = json.dumps(day_labels)
+		daily_commission_json = json.dumps(daily_commission)
+		
+		return render_template('stats.html', stats_heading='My Commissions', total_amount=ba_stats, now=to_date, past_year=from_date, monthly_spending=daily_commission_json, month_labels=day_labels_json, stat_type='ba')
+	elif 'customer' in session:
+		now = datetime.now()
+		# past_year = now - timedelta(days=365)
+		total_amount = 0
 
 		from_date = datetime.strptime(searchFromDate, "%Y-%m-%d")
 		to_date = datetime.strptime(searchToDate, "%Y-%m-%d")
@@ -310,6 +410,17 @@ def custStatRange():
 		month_labels = [month.strftime("%B %Y") for month in months_between]
 
 		monthly_spending = []
+
+		cursor = conn.cursor()
+		cursor.execute("""
+							SELECT IFNULL(SUM(f.price), 0) AS total_amount
+							FROM ticket t
+							INNER JOIN flight f ON t.flight_num = f.flight_num
+							WHERE t.cust_email = %s
+								AND DATE(t.booking_date) BETWEEN DATE(%s) AND DATE(%s);
+						""", (session['username'], from_date, to_date))
+		total_amount = cursor.fetchall()[0]  # Fetch the total amount
+		cursor.close()
 
 		cursor = conn.cursor()
 		for month in months_between:
@@ -339,7 +450,7 @@ def custStatRange():
 		month_labels_json = json.dumps(month_labels)
 		monthly_spending_json = json.dumps(monthly_spending)
 
-		return render_template('stats.html', stats_heading='My Spendings', total_amount=total_amount, now=now, past_year=past_year, monthly_spending=monthly_spending_json, month_labels=month_labels_json)
+		return render_template('stats.html', stats_heading='My Spendings', total_amount=total_amount, now=to_date, past_year=from_date, monthly_spending=monthly_spending_json, month_labels=month_labels_json, stat_type='cust')
 	return render_template('stats.html')
 
 @app.route('/viewFlights')
