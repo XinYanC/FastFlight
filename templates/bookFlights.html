@@ -93,6 +93,8 @@ http://www.tooplate.com/view/2093-flight
                 <div class="col-md-12" style="padding-top: 5%;">
                     <div class="section-heading">
                         <h2>Enter Customer Information</h2>
+                        <!-- <h2>{{flight_number}}</h2>
+                        <h2>{{ticket_id}}</h2> -->
                     </div>
                 </div>
                 <div class="container">
@@ -191,8 +193,8 @@ http://www.tooplate.com/view/2093-flight
                                         <input name="cust_dob" type="date" class="form-control date" id="cust_dob" placeholder="Select date...">
                                     </fieldset>
                                 </div>
-                                <input type="hidden" id="flight_number" value='{{ flight_number }}'>
-                                <input type="hidden" id="ticket_id" value='{{ ticket_id }}'>
+                                <input type="hidden" id="flight_number" name="flight_number" value='{{ flight_number }}'>
+                                <input type="hidden" id="ticket_id" name="ticket_id" value='{{ ticket_id }}'>
                                 <div class="col-md-12">
                                     <label style="color: #f4f4f4;">-</label>
                                     <fieldset>

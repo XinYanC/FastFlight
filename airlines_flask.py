@@ -235,8 +235,8 @@ def stats():
 
 		cursor = conn.cursor()
 		cursor.execute("""
-							SELECT IFNULL(SUM(f.price), 0) AS total_amount, 
-								IFNULL(AVG(f.price), 0) AS avg_amount, 
+							SELECT IFNULL(SUM(f.price * .1), 0) AS total_amount, 
+								IFNULL(AVG(f.price * .1), 0) AS avg_amount, 
 								COUNT(*) AS num_flights
 							FROM ticket t
 							INNER JOIN flight f ON t.flight_num = f.flight_num
@@ -255,14 +255,15 @@ def stats():
 		cursor = conn.cursor()
 		for day in past_thirty_days:
 			cursor.execute("""
-				SELECT (f.price * .1) AS commission
+				SELECT SUM(f.price * 0.1) AS commission
 				FROM ticket t
 				INNER JOIN flight f ON t.flight_num = f.flight_num
-				WHERE t.booking_agent_id = %s;
-			""", (booking_agent_id))
+				WHERE t.booking_agent_id = %s
+					AND DATE(t.booking_date) = %s;
+			""", (booking_agent_id, day))
 			amount = cursor.fetchone()
 			if (amount):
-				daily_commission.append(amount)
+				daily_commission.append(amount[0])
 			else:
 				daily_commission.append(0)
 
@@ -336,16 +337,16 @@ def custStatRange():
 	searchToDate = request.form['searchToDate']
 
 	if 'booking_agent' in session:
-		now = datetime.now()
+		# now = datetime.now()
 		# past_thirty = now - timedelta(days=30)
 		total_amount = 0
 
 		from_date = datetime.strptime(searchFromDate, "%Y-%m-%d")
 		to_date = datetime.strptime(searchToDate, "%Y-%m-%d")
 
-		days_between = (to_date - from_date).days + 1
+		days_between = (to_date - from_date).days 
 		date_range = [to_date - timedelta(days=i) for i in range(days_between)]
-		date_range.reverse()  
+		date_range.reverse()
 
 		day_labels = [day.strftime("%m/%d") for day in date_range]
 
@@ -358,8 +359,8 @@ def custStatRange():
 
 		cursor = conn.cursor()
 		cursor.execute("""
-							SELECT IFNULL(SUM(f.price), 0) AS total_amount, 
-								IFNULL(AVG(f.price), 0) AS avg_amount, 
+							SELECT IFNULL(SUM(f.price * .1), 0) AS total_amount, 
+								IFNULL(AVG(f.price * .1), 0) AS avg_amount, 
 								COUNT(*) AS num_flights
 							FROM ticket t
 							INNER JOIN flight f ON t.flight_num = f.flight_num
@@ -372,14 +373,15 @@ def custStatRange():
 		cursor = conn.cursor()
 		for day in date_range:
 			cursor.execute("""
-				SELECT (f.price * .1) AS commission
+				SELECT SUM(f.price * 0.1) AS commission
 				FROM ticket t
 				INNER JOIN flight f ON t.flight_num = f.flight_num
-				WHERE t.booking_agent_id = %s;
-			""", (booking_agent_id))
+				WHERE t.booking_agent_id = %s
+					AND DATE(t.booking_date) = %s;
+			""", (booking_agent_id, day))
 			amount = cursor.fetchone()
 			if (amount):
-				daily_commission.append(amount)
+				daily_commission.append(amount[0])
 			else:
 				daily_commission.append(0)
 
@@ -1004,72 +1006,81 @@ def viewFlightsResults():
 		return render_template('viewFlights.html', flights_heading='Error', message="Source or destination not found.")
 
 
-
 @app.route('/bookFlight', methods=['POST'])
 def bookFlight():
-	# Retrieve form data
-	flight_number = request.form['flight_number']
+    # Define the generate_ticket_id function
+    def generate_ticket_id():
+        # Retrieve the last ticket ID based on the booking_date from the database
+        cursor = conn.cursor()
+        cursor.execute("SELECT ticket_id FROM ticket ORDER BY booking_date DESC LIMIT 1")
+        last_ticket_id = cursor.fetchone()
 
-	# Generate a unique ticket ID
-	ticket_id = generate_ticket_id()
+        # If no ticket ID exists, set it to 0
+        if last_ticket_id is None:
+            last_ticket_id = 0
+        else:
+            last_ticket_id = int(last_ticket_id[0])
 
-	# Check if the ticket ID already exists and generate a new one if necessary
-	while ticket_id_exists(ticket_id):
-		ticket_id = generate_ticket_id()
+        # Generate a new ticket ID by incrementing the last ticket ID
+        new_ticket_id = last_ticket_id + 1
 
-	# Get the current time for booking_date
-	booking_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        # Pad the ticket ID with leading zeros to ensure it's 5 digits long
+        return str(new_ticket_id).zfill(5)
 
-	if 'username' in session:
-		if 'customer' in session:
-			cust_email = session['username']
-			booking_agent_id = None  # For customers, booking_agent_id is null
+    # Define the ticket_id_exists function
+    def ticket_id_exists(ticket_id):
+        # Check if the ticket ID already exists in the database
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM ticket WHERE ticket_id = %s", (ticket_id,))
+        count = cursor.fetchone()[0]
+        cursor.close()
+        return count > 0
+
+    # Retrieve form data
+    flight_number = request.form['flight_number']
+
+    # Generate a unique ticket ID
+    ticket_id = generate_ticket_id()
+
+    # Check if the ticket ID already exists and generate a new one if necessary
+    while ticket_id_exists(ticket_id):
+        ticket_id = generate_ticket_id()
+
+    # Get the current time for booking_date
+    booking_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    
+    if 'username' in session:
+        if 'customer' in session:
+            cust_email = session['username']
+            booking_agent_id = None  # For customers, booking_agent_id is null
 
             # Insert the ticket into the database
-			cursor = conn.cursor()
-			cursor.execute("INSERT INTO ticket (ticket_id, flight_num, cust_email, booking_agent_id, booking_date) VALUES (%s, %s, %s, %s, %s)",
-							(ticket_id, flight_number, cust_email, booking_agent_id, booking_date))
-			conn.commit()
-			cursor.close()
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO ticket (ticket_id, flight_num, cust_email, booking_agent_id, booking_date) VALUES (%s, %s, %s, %s, %s)",
+                            (ticket_id, flight_number, cust_email, booking_agent_id, booking_date))
+            conn.commit()
+            cursor.close()
 
-			return render_template('successfulBooking.html', ticket_id=ticket_id)
-	elif 'booking_agent' in session:
-		return render_template('bookFlights.html', flight_number=flight_number, ticket_id=ticket_id)
-	else:
-		return render_template('login.html', registerSuccess = 'Log in to book your tickets!')
-	
-def generate_ticket_id():
-		# Retrieve the last ticket ID based on the booking_date from the database
-		cursor = conn.cursor()
-		cursor.execute("SELECT ticket_id FROM ticket ORDER BY booking_date DESC LIMIT 1")
-		last_ticket_id = cursor.fetchone()
+            return render_template('successfulBooking.html', ticket_id=ticket_id)
+        elif 'booking_agent' in session:
+            print(flight_number)
+            return render_template('bookFlights.html', flight_number=flight_number, ticket_id=ticket_id)
+        else:
+            return render_template('login.html', registerSuccess='Log in to book your tickets!')
+    else:
+        return render_template('login.html', registerSuccess='Log in to book your tickets!')
 
-		# If no ticket ID exists, set it to 0
-		if last_ticket_id is None:
-			last_ticket_id = 0
-		else:
-			last_ticket_id = int(last_ticket_id[0])
-
-		# Generate a new ticket ID by incrementing the last ticket ID
-		new_ticket_id = last_ticket_id + 1
-
-		# Pad the ticket ID with leading zeros to ensure it's 5 digits long
-		return str(new_ticket_id).zfill(5)
-
-
-def ticket_id_exists(ticket_id):
-	# Check if the ticket ID already exists in the database
-	cursor = conn.cursor()
-	cursor.execute("SELECT COUNT(*) FROM ticket WHERE ticket_id = %s", (ticket_id,))
-	count = cursor.fetchone()[0]
-	cursor.close()
-	return count > 0
 
 @app.route('/bookFlights')
 def bookFlights():
-	return render_template('bookFlights.html')
+    # Retrieve ticket_id and flight_number from query parameters
+    ticket_id = request.args.get('ticket_id')
+    flight_number = request.args.get('flight_number')
 
-@app.route('/inputCustInfo')
+    # Pass ticket_id and flight_number to the template
+    return render_template('bookFlights.html', ticket_id=ticket_id, flight_number=flight_number)
+
+@app.route('/inputCustInfo', methods=['GET', 'POST'])
 def inputCustInfo():
 	cust_email = request.form['cust_email']
 	flight_number = request.form['flight_number']
