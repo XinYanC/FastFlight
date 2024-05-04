@@ -51,7 +51,22 @@ def home():
 			cursor.close()
 
 			return redirect(url_for('staffInterface', staff_name=first_name))
-	return render_template('index.html')
+		
+	cursor = conn.cursor()
+	sql = """
+            SELECT a.airport_city, COUNT(*) AS ticket_count
+            FROM ticket t
+            INNER JOIN flight f ON t.flight_num = f.flight_num
+            INNER JOIN airport a ON f.arrival_airport_name = a.airport_name
+            GROUP BY a.airport_city
+            ORDER BY ticket_count DESC
+            LIMIT 10
+            """
+	cursor.execute(sql)
+	top_cities = cursor.fetchall()
+	cursor.close()
+
+	return render_template('index.html', top_cities=top_cities)
 
 
 @app.route('/login')
@@ -101,7 +116,28 @@ def staffInterface():
 	if 'admin' in session:
 		staff_admin = True
 
-	return render_template('staffInterface.html', staff_name=staff_name, staff_operator=staff_operator, staff_admin=staff_admin)
+	one_year_ago = datetime.now() - timedelta(days=365)
+	three_months_ago = datetime.now() - timedelta(days=3*30)
+	today = datetime.now()
+
+	cursor = conn.cursor()
+	sql = """
+            SELECT a.airport_city, COUNT(*) AS ticket_count
+            FROM ticket t
+            INNER JOIN flight f ON t.flight_num = f.flight_num
+            INNER JOIN airport a ON f.arrival_airport_name = a.airport_name
+            WHERE t.booking_date BETWEEN %s AND %s
+            GROUP BY a.airport_city
+            ORDER BY ticket_count DESC
+            LIMIT 3
+            """
+	cursor.execute(sql, (three_months_ago, today))
+	top_cities_month = cursor.fetchall()
+	cursor.execute(sql, (one_year_ago, today))
+	top_cities_year = cursor.fetchall()
+	cursor.close()
+
+	return render_template('staffInterface.html', staff_name=staff_name, staff_operator=staff_operator, staff_admin=staff_admin, top_cities_month=top_cities_month, top_cities_year=top_cities_year)
 
 @app.route('/flightResult')
 def flightResult():
