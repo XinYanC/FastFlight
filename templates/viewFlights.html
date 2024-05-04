@@ -121,7 +121,7 @@ http://www.tooplate.com/view/2093-flight
             justify-content: center; 
             align-items: center; 
         }
-        .flightCustName{
+        .flightCustInfo{
             padding-right: 7%;
             font-weight: 500;
         }
@@ -154,17 +154,17 @@ http://www.tooplate.com/view/2093-flight
             <div class="row">
                 <div class="submit-form">
                     <form id="viewFlightsResults" action="/viewFlightsResults" method="POST">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <fieldset>
                                 <label for="sourceSearch">Source:</label>
                                 <input name="sourceSearch" type="text" class="form-control date" id="sourceSearch" placeholder="{{sourcePlaceholder}}">
                                 <div id="suggestionsSource" class="suggestions-container"></div>
                             </fieldset>
                         </div>
-                        <div style="position: absolute; top: 27%; left: 37.5%; transform: translate(-50%, -50%);">
+                        <div style="position: absolute; top: 27%; left: 31.25%; transform: translate(-50%, -50%);">
                             <i class="fa-solid fa-plane"></i>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <fieldset>
                                 <label for="destinationSearch">Destination:</label>
                                 <input name="destinationSearch" type="text" class="form-control date" id="destinationSearch" placeholder="{{destPlaceholder}}">
@@ -173,8 +173,14 @@ http://www.tooplate.com/view/2093-flight
                         </div>
                         <div class="col-md-2">
                             <fieldset>
-                                <label for="searchDate">Date:</label>
-                                <input name="searchDate" type="date" class="form-control date" id="return" placeholder="{{datePlaceholder}}">
+                                <label for="searchFromDate">From:</label>
+                                <input name="searchFromDate" type="date" class="form-control date" id="return">
+                            </fieldset>
+                        </div>
+                        <div class="col-md-2">
+                            <fieldset>
+                                <label for="searchToDate">To:</label>
+                                <input name="searchToDate" type="date" class="form-control date" id="return">
                             </fieldset>
                         </div>
                         <div class="col-md-2">
@@ -231,7 +237,11 @@ http://www.tooplate.com/view/2093-flight
                                             <img class="connector" src="static/img/connector2.png">
                                             <h5 class="flightArrTime">{{ flight[3] }}</h5>
                                         </div>
-                                        <h5 class="flightCustName">{{ flight[6] }}</h5>
+                                        {% if aCust %}
+                                            <h5 class="flightCustInfo" style="color: rgb(53, 142, 53)">Paid - ${{ flight[4] }}</h5>
+                                        {% else %}
+                                            <h5 class="flightCustInfo">{{ flight[6] }}</h5>
+                                        {% endif %}
                                     </form>
                                 </div>
                             </div>

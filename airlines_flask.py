@@ -803,11 +803,8 @@ def searchFlightsResults():
 def viewFlightsResults():
 	source_search = request.form['sourceSearch'].upper()  
 	destination_search = request.form['destinationSearch'].upper()  
-	search_date = request.form['searchDate']
-
-	print("Source Search:", source_search)
-	print("Destination Search:", destination_search)
-	print("Search Date:", search_date)
+	search_from_date = request.form['searchFromDate']
+	search_to_date = request.form['searchToDate']
 
 	def search_airport(search_term):
 		with conn.cursor() as airport_cursor:
@@ -830,7 +827,7 @@ def viewFlightsResults():
 	else:
 		destination_airports = search_airport(destination_search)
 
-
+	aCust = False
 	if source_airports and destination_airports:
 		# Execute SQL query to find flights
 		with conn.cursor() as flight_cursor:
@@ -855,7 +852,7 @@ def viewFlightsResults():
 								WHERE 
 									UPPER(depart_airport_name) IN %s 
 									AND UPPER(arrival_airport_name) IN %s 
-									AND DATE(departure_time) = %s 
+									AND DATE(departure_time) BETWEEN %s AND %s
 									AND b.booking_agent_email = %s
 								ORDER BY 
 									formatted_departure_date, formatted_departure_time;
@@ -876,23 +873,24 @@ def viewFlightsResults():
 								WHERE 
 									UPPER(depart_airport_name) IN %s 
 									AND UPPER(arrival_airport_name) IN %s 
-									AND DATE(departure_time) = %s 
+									AND DATE(departure_time) BETWEEN %s AND %s
 									AND t.cust_email = %s
 								ORDER BY 
 									formatted_departure_date, formatted_departure_time;
 
 							"""
-			flight_cursor.execute(flight_sql, (tuple(source_airports), tuple(destination_airports), search_date, session['username']))
+			flight_cursor.execute(flight_sql, (tuple(source_airports), tuple(destination_airports), search_from_date, search_to_date, session['username']))
 			flights = flight_cursor.fetchall()
+			aCust = True
 
 		print("Flights:", flights)
 
 		if flights:
-			return render_template('searchFlights.html', sourcePlaceholder=source_search, destPlaceholder=destination_search, datePlaceholder=search_date, flights_heading='TICKETS TO '+destination_search, flights=flights)
+			return render_template('viewFlights.html', sourcePlaceholder=source_search, destPlaceholder=destination_search, flights_heading='TICKETS TO '+destination_search, flights=flights, aCust=aCust)
 		else:
-			return render_template('searchFlights.html', sourcePlaceholder=source_search, destPlaceholder=destination_search, datePlaceholder=search_date, flights_heading='TICKETS TO '+destination_search, message="No results found.")
+			return render_template('viewFlights.html', sourcePlaceholder=source_search, destPlaceholder=destination_search, flights_heading='TICKETS TO '+destination_search, message="No results found.")
 	else:
-		return render_template('searchFlights.html', flights_heading='Error', message="Source or destination not found.")
+		return render_template('viewFlights.html', flights_heading='Error', message="Source or destination not found.")
 
 
 
