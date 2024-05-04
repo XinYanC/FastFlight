@@ -1346,6 +1346,67 @@ def changeFlightStatusRequest():
 
 	return render_template('viewFlights.html', successfulAdd='Successfully Updated Flight!', sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...')
 
+@app.route('/addAirplane', methods=['GET', 'POST'])
+def addAirplane():
+    cursor = conn.cursor()
+    cursor.execute("SELECT airline_name FROM airline_staff WHERE username = %s", (session['username'],))
+    airline_name = cursor.fetchone()[0]
+    cursor.close()
+
+    cursor = conn.cursor()
+    cursor.execute("SELECT MAX(CAST(SUBSTRING(airplane_id, 3) AS UNSIGNED)) AS max_number FROM airplane WHERE airline_name = %s", (airline_name,))
+    result = cursor.fetchone()
+    cursor.close()
+
+    if result and result[0] is not None:
+        max_number = result[0]
+        next_number = max_number + 1
+    else:
+        next_number = 0
+
+    abbreviation = ''.join(word[0] for word in airline_name.split()).upper()
+    # Generate the airplane_id with a maximum length of 5 characters
+    airplane_id = f"{abbreviation}{next_number:03d}"[:5]
+
+    return render_template('addAirplane.html', airline_name=airline_name, airplane_id=airplane_id)
+
+@app.route('/addAirplaneRequest', methods=['GET', 'POST'])
+def addAirplaneRequest():
+	airline_name = request.form.get('airline_name')
+	airplane_id = request.form.get('airplane_id')[:5]
+	total_seats = request.form['total_seats']
+
+	cursor = conn.cursor()
+	cursor.execute("INSERT INTO airplane VALUES (%s, %s, %s)",
+					(airplane_id, airline_name, total_seats))
+	conn.commit()
+	cursor.close()
+
+	cursor = conn.cursor()
+	cursor.execute("SELECT airplane_id, total_seats FROM airplane WHERE airline_name = %s;", (airline_name,))
+	airplanes = cursor.fetchall()
+	cursor.close()
+
+	return render_template('showAirplane.html', successfulAdd='Successfully Added Airplane No.'+airplane_id, airline_name=airline_name, airplanes=airplanes)
+
+
+@app.route('/showAirplane', methods=['GET', 'POST'])
+def showAirplane():
+	cursor = conn.cursor()
+	cursor.execute("SELECT airline_name FROM airline_staff WHERE username = %s", (session['username'],))
+	airline_name = cursor.fetchone()[0]
+	cursor.close()
+
+	cursor = conn.cursor()
+	cursor.execute("SELECT airplane_id, total_seats FROM airplane WHERE airline_name = %s;", (airline_name,))
+	airplanes = cursor.fetchall()
+	cursor.close()
+
+	if airplanes:
+		return render_template('showCustomer.html', airline_name=airline_name, airplanes=airplanes)
+	else:
+		return render_template('showCustomer.html', message='No customers on flight found.')
+
 app.secret_key = 'its a secret shhhhhhh'
 #Run the app on localhost port 5000
 #debug = True -> you don't have to restart flask
