@@ -27,7 +27,7 @@ def home():
     if ('username' in session):
         if 'customer' in session:
             cursor = conn.cursor()
-            cursor.execute("SELECT c_name FROM customer WHERE cust_email = %s", (session['username'],))
+            cursor.execute("SELECT c_name FROM customer WHERE cust_email = %s", session['username'])
             c_name = cursor.fetchone()[0]
             cursor.close()
 
@@ -39,14 +39,14 @@ def home():
             return redirect(url_for('customerInterface', cust_name=first_name))
         elif 'booking_agent' in session:
             cursor = conn.cursor()
-            cursor.execute("SELECT booking_agent_id FROM booking_agent WHERE booking_agent_email = %s", (session['username'],))
+            cursor.execute("SELECT booking_agent_id FROM booking_agent WHERE booking_agent_email = %s", session['username'])
             booking_agent_id = cursor.fetchone()[0]
             cursor.close()
 
             return redirect(url_for('bookingAgentInterface', booking_agent_id=booking_agent_id))
         elif 'airline_staff' in session:
             cursor = conn.cursor()
-            cursor.execute("SELECT first_name FROM airline_staff WHERE username = %s", (session['username'],))
+            cursor.execute("SELECT first_name FROM airline_staff WHERE username = %s", session['username'])
             first_name = cursor.fetchone()[0]
             cursor.close()
 
@@ -156,7 +156,7 @@ def searchFlights():
 							f.airline_name, 
 							f.flight_num, 
 							TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
-							TIME_FORMAT(f.arrival_time, '%H:%i') AS formatted_arrival_time, 
+							TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
 							f.price,
 							DATE(f.departure_time) AS formatted_departure_date,
 							a.total_seats,
@@ -170,14 +170,38 @@ def searchFlights():
 						INNER JOIN 
 							airplane a ON f.airplane_id = a.airplane_id
 						INNER JOIN
-							airline_staff as ON f.airline_name = as.airline_name
+							airline_staff astaff ON f.airline_name = astaff.airline_name
 						WHERE 
-							flight_status = 'upcoming'
+							f.flight_status = 'upcoming'
+							AND astaff.username = %s
 						HAVING 
 							booked_seats < a.total_seats
 						ORDER BY 
 							formatted_departure_date, formatted_departure_time;
 					"""
+
+		# flight_sql = """
+		# 				SELECT 
+		# 					f.airline_name, 
+		# 					f.flight_num, 
+		# 					TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
+		# 					TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
+		# 					f.price,
+		# 					DATE(f.departure_time) AS formatted_departure_date
+		# 				FROM 
+		# 					flight f
+		# 				INNER JOIN 
+		# 					airline_staff s ON f.airline_name = s.airline_name
+		# 				INNER JOIN 
+		# 					ticket t ON f.flight_num = t.flight_num
+		# 				WHERE 
+		# 					s.username = %s
+		# 					AND f.departure_time >= %s
+		# 					AND f.departure_time < %s
+		# 					AND f.flight_status = 'upcoming'
+		# 				ORDER BY 
+		# 					formatted_departure_date, formatted_departure_time;
+		# 			"""
 	else:
 		flight_sql = """
 						SELECT 
@@ -211,13 +235,16 @@ def searchFlights():
 			if 'booking_agent' in session:
 				cursor.execute(flight_sql, session['username'])
 			elif 'airline_staff' in session:
-				cursor.execute(flight_sql)
+				cursor.execute(flight_sql, session['username'])
 			else:
 				cursor.execute(flight_sql)
 			flights = cursor.fetchall()
-			return render_template('searchFlights.html', flights_heading='Upcoming Flights', sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...', datePlaceholder='Select date...', flights=flights, flightDepDate=True)
+			if flights:
+				flights_heading = 'Upcoming Flights'
+			else:
+				flights_heading = 'No Upcoming Flights'
+			return render_template('searchFlights.html', flights_heading=flights_heading, sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...', datePlaceholder='Select date...', flights=flights, flightDepDate=True)
 	finally:
-        # Close the database connection
 		conn.close()
 
 @app.route('/stats')
@@ -229,7 +256,7 @@ def stats():
 		total_amount = 0
 
 		cursor = conn.cursor()
-		cursor.execute("SELECT booking_agent_id FROM booking_agent WHERE booking_agent_email = %s", (session['username'],))
+		cursor.execute("SELECT booking_agent_id FROM booking_agent WHERE booking_agent_email = %s", session['username'])
 		booking_agent_id = cursor.fetchone()[0]
 		cursor.close()
 
@@ -353,7 +380,7 @@ def custStatRange():
 		daily_commission = []
 
 		cursor = conn.cursor()
-		cursor.execute("SELECT booking_agent_id FROM booking_agent WHERE booking_agent_email = %s", (session['username'],))
+		cursor.execute("SELECT booking_agent_id FROM booking_agent WHERE booking_agent_email = %s", session['username'])
 		booking_agent_id = cursor.fetchone()[0]
 		cursor.close()
 
@@ -457,6 +484,8 @@ def custStatRange():
 
 @app.route('/viewFlights')
 def viewFlights():
+	current_date = datetime.now().date()
+	end_date = current_date + timedelta(days=30)
 	# flight_sql = """
 	# 				SELECT 
 	# 					airline_name, 
@@ -512,11 +541,37 @@ def viewFlights():
 						ORDER BY 
 							formatted_departure_date, formatted_departure_time;
 					"""
+	elif 'airline_staff' in session:
+		flight_sql = """
+						SELECT 
+							f.airline_name, 
+							f.flight_num, 
+							TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
+							TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
+							f.price,
+							DATE(f.departure_time) AS formatted_departure_date
+						FROM 
+							flight f
+						INNER JOIN 
+							airline_staff s ON f.airline_name = s.airline_name
+						INNER JOIN 
+							ticket t ON f.flight_num = t.flight_num
+						WHERE 
+							s.username = %s
+							AND f.departure_time >= %s
+							AND f.departure_time < %s
+							AND f.flight_status = 'upcoming'
+						ORDER BY 
+							formatted_departure_date, formatted_departure_time;
+					"""
 
 	try:
 		# Execute the SQL query
 		with conn.cursor() as cursor:
-			cursor.execute(flight_sql, session['username'])
+			if 'airline_staff' in session: 
+				cursor.execute(flight_sql, (session['username'], current_date, end_date))
+			else:
+				cursor.execute(flight_sql, session['username'])
 			flights = cursor.fetchall()
 			if (flights):
 				return render_template('viewFlights.html', flights_heading='View Upcoming Flights', sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...', datePlaceholder='Select date...', flights=flights, flightDepDate=True)
@@ -575,7 +630,7 @@ def loginSubmit():
 		session['username'] = username
 		if (user == "customer"):
 			cursor = conn.cursor()
-			cursor.execute("SELECT c_name FROM customer WHERE cust_email = %s", (username))
+			cursor.execute("SELECT c_name FROM customer WHERE cust_email = %s", username)
 			c_name = cursor.fetchone()[0]
 			cursor.close()
 
@@ -587,14 +642,14 @@ def loginSubmit():
 			return redirect(url_for('customerInterface', cust_name=first_name))
 		elif (user == "booking_agent"):
 			cursor = conn.cursor()
-			cursor.execute("SELECT booking_agent_id FROM booking_agent WHERE booking_agent_email = %s", (username))
+			cursor.execute("SELECT booking_agent_id FROM booking_agent WHERE booking_agent_email = %s", username)
 			booking_agent_id = cursor.fetchone()[0]
 			cursor.close()
 
 			return redirect(url_for('bookingAgentInterface', booking_agent_id=booking_agent_id))
 		elif (user == "airline_staff"):
 			cursor = conn.cursor()
-			cursor.execute("SELECT first_name FROM airline_staff WHERE username = %s", (username))
+			cursor.execute("SELECT first_name FROM airline_staff WHERE username = %s", username)
 			first_name = cursor.fetchone()[0]
 			print(first_name)
 			cursor.close()
@@ -762,7 +817,7 @@ def searchFlightsResults():
 	def search_airport(search_term):
 		with conn.cursor() as airport_cursor:
 			airport_sql = "SELECT airport_name FROM airport WHERE UPPER(airport_city) = %s"
-			airport_cursor.execute(airport_sql, (search_term,))
+			airport_cursor.execute(airport_sql, search_term)
 			results = airport_cursor.fetchall()
 			airports = [result[0] if isinstance(result, tuple) else result['airport_name'] for result in results]
 			print("Airports in", search_term, ":", airports)
@@ -859,18 +914,19 @@ def searchFlightsResults():
 								INNER JOIN 
 									airplane a ON f.airplane_id = a.airplane_id
 								INNER JOIN
-									airline_staff as ON f.airline_name = as.airline_name
+									airline_staff astaff ON f.airline_name = astaff.airline_name
 								WHERE 
 									UPPER(depart_airport_name) IN %s 
 									AND UPPER(arrival_airport_name) IN %s 
 									AND DATE(departure_time) = %s 
 									AND flight_status = 'upcoming'
+									AND astaff.username = %s
 								HAVING 
 									booked_seats < a.total_seats
 								ORDER BY 
 									price;
 							"""
-				flight_cursor.execute(flight_sql, (tuple(source_airports), tuple(destination_airports), search_date))
+				flight_cursor.execute(flight_sql, (tuple(source_airports), tuple(destination_airports), search_date, session['username']))
 			else:
 				flight_sql = """
 								SELECT 
@@ -912,35 +968,35 @@ def searchFlightsResults():
 	else:
 		return render_template('searchFlights.html', flights_heading='Error', message="Source or destination not found.")
 
-@app.route('/viewFlightsResults', methods=['POST'])
+@app.route('/viewFlightsResults', methods=['GET', 'POST'])
 def viewFlightsResults():
-	source_search = request.form['sourceSearch'].upper()  
-	destination_search = request.form['destinationSearch'].upper()  
-	search_from_date = request.form['searchFromDate']
-	search_to_date = request.form['searchToDate']
+	source_search = request.form.get('sourceSearch', '').upper()
+	destination_search = request.form.get('destinationSearch', '').upper()
+	search_from_date = request.form.get('searchFromDate', '')
+	search_to_date = request.form.get('searchToDate', '')
 
 	def search_airport(search_term):
 		with conn.cursor() as airport_cursor:
 			airport_sql = "SELECT airport_name FROM airport WHERE UPPER(airport_city) = %s"
-			airport_cursor.execute(airport_sql, (search_term,))
+			airport_cursor.execute(airport_sql, search_term)
 			results = airport_cursor.fetchall()
 			airports = [result[0] if isinstance(result, tuple) else result['airport_name'] for result in results]
 			print("Airports in", search_term, ":", airports)
 			return airports
 
 	# If source_search is not a city, set source_airports to source_search
-	if not search_airport(source_search):
+	source_airports = search_airport(source_search)
+	if not source_airports:
 		source_airports = [source_search]
-	else:
-		source_airports = search_airport(source_search)
 
 	# If destination_search is not a city, set destination_airports to destination_search
-	if not search_airport(destination_search):
+	destination_airports = search_airport(destination_search)
+	if not destination_airports:
 		destination_airports = [destination_search]
-	else:
-		destination_airports = search_airport(destination_search)
+
 
 	aCust = False
+	aStaff = False
 	if source_airports and destination_airports:
 		# Execute SQL query to find flights
 		with conn.cursor() as flight_cursor:
@@ -990,16 +1046,39 @@ def viewFlightsResults():
 									AND t.cust_email = %s
 								ORDER BY 
 									formatted_departure_date, formatted_departure_time;
-
 							"""
+				aCust = True
+			elif 'airline_staff' in session:
+				flight_sql = """
+								SELECT 
+									f.airline_name, 
+									f.flight_num, 
+									TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
+									TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
+									f.price,
+									DATE(f.departure_time) AS formatted_departure_date
+								FROM 
+									flight f
+								INNER JOIN 
+									airplane a ON f.airplane_id = a.airplane_id
+								INNER JOIN
+									airline_staff astaff ON f.airline_name = astaff.airline_name
+								WHERE 
+									UPPER(depart_airport_name) IN %s 
+									AND UPPER(arrival_airport_name) IN %s 
+									AND DATE(departure_time) BETWEEN %s AND %s
+									AND astaff.username = %s
+								ORDER BY 
+									formatted_departure_date, formatted_departure_time;
+							"""
+				aStaff = True
 			flight_cursor.execute(flight_sql, (tuple(source_airports), tuple(destination_airports), search_from_date, search_to_date, session['username']))
 			flights = flight_cursor.fetchall()
-			aCust = True
 
 		print("Flights:", flights)
 
 		if flights:
-			return render_template('viewFlights.html', sourcePlaceholder=source_search, destPlaceholder=destination_search, flights_heading='TICKETS TO '+destination_search, flights=flights, aCust=aCust)
+			return render_template('viewFlights.html', sourcePlaceholder=source_search, destPlaceholder=destination_search, flights_heading='TICKETS TO '+destination_search, flights=flights, aCust=aCust, aStaff=aStaff)
 		else:
 			return render_template('viewFlights.html', sourcePlaceholder=source_search, destPlaceholder=destination_search, flights_heading='TICKETS TO '+destination_search, message="No results found.")
 	else:
@@ -1009,66 +1088,65 @@ def viewFlightsResults():
 @app.route('/bookFlight', methods=['POST'])
 def bookFlight():
     # Define the generate_ticket_id function
-    def generate_ticket_id():
-        # Retrieve the last ticket ID based on the booking_date from the database
-        cursor = conn.cursor()
-        cursor.execute("SELECT ticket_id FROM ticket ORDER BY booking_date DESC LIMIT 1")
-        last_ticket_id = cursor.fetchone()
+	def generate_ticket_id():
+		# Retrieve the last ticket ID based on the booking_date from the database
+		cursor = conn.cursor()
+		cursor.execute("SELECT ticket_id FROM ticket ORDER BY booking_date DESC LIMIT 1")
+		last_ticket_id = cursor.fetchone()
 
-        # If no ticket ID exists, set it to 0
-        if last_ticket_id is None:
-            last_ticket_id = 0
-        else:
-            last_ticket_id = int(last_ticket_id[0])
+		# If no ticket ID exists, set it to 0
+		if last_ticket_id is None:
+			last_ticket_id = 0
+		else:
+			last_ticket_id = int(last_ticket_id[0])
 
-        # Generate a new ticket ID by incrementing the last ticket ID
-        new_ticket_id = last_ticket_id + 1
+		# Generate a new ticket ID by incrementing the last ticket ID
+		new_ticket_id = last_ticket_id + 1
 
-        # Pad the ticket ID with leading zeros to ensure it's 5 digits long
-        return str(new_ticket_id).zfill(5)
+		# Pad the ticket ID with leading zeros to ensure it's 5 digits long
+		return str(new_ticket_id).zfill(5)
 
-    # Define the ticket_id_exists function
-    def ticket_id_exists(ticket_id):
-        # Check if the ticket ID already exists in the database
-        cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM ticket WHERE ticket_id = %s", (ticket_id,))
-        count = cursor.fetchone()[0]
-        cursor.close()
-        return count > 0
+	# Define the ticket_id_exists function
+	def ticket_id_exists(ticket_id):
+		# Check if the ticket ID already exists in the database
+		cursor = conn.cursor()
+		cursor.execute("SELECT COUNT(*) FROM ticket WHERE ticket_id = %s", ticket_id)
+		count = cursor.fetchone()[0]
+		cursor.close()
+		return count > 0
 
-    # Retrieve form data
-    flight_number = request.form['flight_number']
+	# Retrieve form data
+	flight_number = request.form['flight_number']
 
-    # Generate a unique ticket ID
-    ticket_id = generate_ticket_id()
+	# Generate a unique ticket ID
+	ticket_id = generate_ticket_id()
 
-    # Check if the ticket ID already exists and generate a new one if necessary
-    while ticket_id_exists(ticket_id):
-        ticket_id = generate_ticket_id()
+	# Check if the ticket ID already exists and generate a new one if necessary
+	while ticket_id_exists(ticket_id):
+		ticket_id = generate_ticket_id()
 
-    # Get the current time for booking_date
-    booking_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    
-    if 'username' in session:
-        if 'customer' in session:
-            cust_email = session['username']
-            booking_agent_id = None  # For customers, booking_agent_id is null
+	# Get the current time for booking_date
+	booking_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            # Insert the ticket into the database
-            cursor = conn.cursor()
-            cursor.execute("INSERT INTO ticket (ticket_id, flight_num, cust_email, booking_agent_id, booking_date) VALUES (%s, %s, %s, %s, %s)",
-                            (ticket_id, flight_number, cust_email, booking_agent_id, booking_date))
-            conn.commit()
-            cursor.close()
+	if 'username' in session:
+		if 'customer' in session:
+			cust_email = session['username']
+			booking_agent_id = None  # For customers, booking_agent_id is null
 
-            return render_template('successfulBooking.html', ticket_id=ticket_id)
-        elif 'booking_agent' in session:
-            print(flight_number)
-            return render_template('bookFlights.html', flight_number=flight_number, ticket_id=ticket_id)
-        else:
-            return render_template('login.html', registerSuccess='Log in to book your tickets!')
-    else:
-        return render_template('login.html', registerSuccess='Log in to book your tickets!')
+			# Insert the ticket into the database
+			cursor = conn.cursor()
+			cursor.execute("INSERT INTO ticket (ticket_id, flight_num, cust_email, booking_agent_id, booking_date) VALUES (%s, %s, %s, %s, %s)",
+							(ticket_id, flight_number, cust_email, booking_agent_id, booking_date))
+			conn.commit()
+			cursor.close()
+
+			return render_template('successfulBooking.html', ticket_id=ticket_id)
+		elif 'booking_agent' in session:
+			return render_template('bookFlights.html', flight_number=flight_number, ticket_id=ticket_id)
+		else:
+			return render_template('login.html', registerSuccess='Log in to book your tickets!')
+	else:
+		return render_template('login.html', registerSuccess='Log in to book your tickets!')
 
 
 @app.route('/bookFlights')
@@ -1080,6 +1158,28 @@ def bookFlights():
     # Pass ticket_id and flight_number to the template
     return render_template('bookFlights.html', ticket_id=ticket_id, flight_number=flight_number)
 
+@app.route('/showCustomer', methods=['GET', 'POST'])
+def showCustomer():
+    if request.method == 'POST':
+        # Retrieve flight_number from the request form
+        flight_number = request.form.get('flight_number')
+
+        if flight_number:
+            cursor = conn.cursor()
+            cursor.execute("SELECT c.c_name FROM customer c INNER JOIN ticket t ON c.cust_email = t.cust_email WHERE t.flight_num = %s;", (flight_number,))
+            customers = cursor.fetchall()
+            cursor.close()
+
+            if customers:
+                return render_template('showCustomer.html', customers=customers, flight_number=flight_number)
+            else:
+                return render_template('showCustomer.html', message='No customers on flight found.', flight_number=flight_number)
+        else:
+            return render_template('showCustomer.html', message='Flight number not provided.')
+    else:
+        # Handle GET request
+        return render_template('showCustomer.html', message='')  # Render the form initially
+
 @app.route('/inputCustInfo', methods=['GET', 'POST'])
 def inputCustInfo():
 	cust_email = request.form['cust_email']
@@ -1088,7 +1188,7 @@ def inputCustInfo():
 	booking_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 	cursor = conn.cursor()
-	cursor.execute("SELECT booking_agent_id FROM booking_agent WHERE booking_agent_email = %s", (session['username'],))
+	cursor.execute("SELECT booking_agent_id FROM booking_agent WHERE booking_agent_email = %s", session['username'])
 	booking_agent_id = cursor.fetchone()[0]
 	cursor.close()
 
@@ -1104,7 +1204,7 @@ def inputCustInfo():
 def awards():
 	if 'booking_agent' in session:
 		cursor = conn.cursor()
-		cursor.execute("SELECT booking_agent_id FROM booking_agent WHERE booking_agent_email = %s", (session['username'],))
+		cursor.execute("SELECT booking_agent_id FROM booking_agent WHERE booking_agent_email = %s", session['username'])
 		booking_agent_id = cursor.fetchone()[0]
 		cursor.close()
 
@@ -1117,7 +1217,7 @@ def awards():
 			GROUP BY t.cust_email
 			ORDER BY num_tickets DESC
 			LIMIT 5;
-		""", (booking_agent_id,))
+		""", booking_agent_id)
 		tcustomer = cursor.fetchall()
 		cursor.close()
 
@@ -1131,13 +1231,19 @@ def awards():
 				GROUP BY c.c_name
 				ORDER BY commission DESC
 				LIMIT 5
-			""", (booking_agent_id,))
+			""", booking_agent_id)
 		ccustomer = cursor.fetchall()
 		cursor.close()
 
 		return render_template('awards.html', awards_heading='My Top Customers', tcustomer=tcustomer, ccustomer=ccustomer, award_type='ba')
 	return render_template('index.html') 
 
+@app.route('/createFlight')
+def createFlight():
+	if 'admin' in session:
+		return render_template('createFlight.html')
+	else:
+		return render_template('viewFlights.html')
 
 app.secret_key = 'its a secret shhhhhhh'
 #Run the app on localhost port 5000
