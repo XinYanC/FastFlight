@@ -1100,6 +1100,44 @@ def inputCustInfo():
 
 	return render_template('successfulBooking.html', ticket_id=ticket_id)
 
+@app.route('/awards')
+def awards():
+	if 'booking_agent' in session:
+		cursor = conn.cursor()
+		cursor.execute("SELECT booking_agent_id FROM booking_agent WHERE booking_agent_email = %s", (session['username'],))
+		booking_agent_id = cursor.fetchone()[0]
+		cursor.close()
+
+		cursor = conn.cursor()
+		cursor.execute("""
+			SELECT c.c_name, COUNT(t.cust_email) AS num_tickets
+			FROM ticket t
+			INNER JOIN customer c ON t.cust_email = c.cust_email
+			WHERE t.booking_agent_id = %s
+			GROUP BY t.cust_email
+			ORDER BY num_tickets DESC
+			LIMIT 5;
+		""", (booking_agent_id,))
+		tcustomer = cursor.fetchall()
+		cursor.close()
+
+		cursor = conn.cursor()
+		cursor.execute("""
+				SELECT c.c_name, SUM(f.price * 0.1) AS commission
+				FROM ticket t
+				INNER JOIN flight f ON t.flight_num = f.flight_num
+				INNER JOIN customer c ON t.cust_email = c.cust_email
+				WHERE t.booking_agent_id = %s
+				GROUP BY c.c_name
+				ORDER BY commission DESC
+				LIMIT 5
+			""", (booking_agent_id,))
+		ccustomer = cursor.fetchall()
+		cursor.close()
+
+		return render_template('awards.html', awards_heading='My Top Customers', tcustomer=tcustomer, ccustomer=ccustomer, award_type='ba')
+	return render_template('index.html') 
+
 
 app.secret_key = 'its a secret shhhhhhh'
 #Run the app on localhost port 5000

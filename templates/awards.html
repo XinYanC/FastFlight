@@ -98,76 +98,40 @@ http://www.tooplate.com/view/2093-flight
                 <div class="container">
                     <div class="row cardDiv">
                         <div class="card shadow-sm">
-                            {% if stat_type == 'cust' %}
-                                <h4 style="text-align: center;"><strong>Track My Past Spendings</strong></h4>
-                            {% elif stat_type == 'ba' %}
+                            {% if award_type == 'ba' %}
+                                <h4 style="text-align: center;"><strong>Your Top 5 Tickets Customer 🏆</strong></h4>
+                                <hr>
+                                {% for tcustomerPerson in tcustomer %}
+                                    <div class="row mb-4 cardDiv">
+                                        <h5>{{ tcustomerPerson[0] }}</h5>
+                                        {% if tcustomerPerson[1] == 1 %}
+                                            <h5>{{ tcustomerPerson[1] }} ticket</h5>
+                                        {% else %}
+                                            <h5>{{ tcustomerPerson[1] }} tickets</h5>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            {% elif award_type == 'st' %}
                                 <h4 style="text-align: center;"><strong>Track My Past Commissions</strong></h4>
+                                <hr>
                             {% endif %}
-                            <!-- <select id="timeRange" name="timeRange">
-                                <option value="365">Past 1 year</option>
-                                <option value="183">Past 6 months</option>
-                            </select>                               -->
-                            <!-- HTML canvas element to render the pie chart -->
-                            <hr>
-                            {% if stat_type == 'cust' and total_amount[0] == 0 %}
-                                <p style="color:rgb(175, 42, 42)">*No money spent</p>
-                            {% elif stat_type == 'ba' and total_amount[0][0] == 0 %}
-                                <p style="color:rgb(175, 42, 42)">*No commission made</p>
-                            {% endif %}
-
-                            <canvas id="myPieChart" style="margin: auto; display: inline-block;"></canvas>
-
-                            <hr>
-                            {% if stat_type == 'cust' %}
-                                <h5 style="text-align: center;">Total Amount Spent: <strong>${{total_amount[0]}}</strong></h5>
-                            {% elif stat_type == 'ba' %}
-                                <h5 style="text-align: center;">Average Commission Received Per Ticket Booked: <strong>${{ '{:.2f}'.format(total_amount[0][1]) }}</strong></h5>
-                                <h5 style="text-align: center;">Total Number of Tickets Sold: <strong>{{total_amount[0][2]}} tickets</strong></h5>
-                            {% endif %}
-
-                            {% if stat_type == 'cust' %}
-                                <input type="hidden" id="totalAmountInput" value="{{ total_amount[0] }}">
-                            {% elif stat_type == 'ba' %}
-                                <input type="hidden" id="totalAmountInput" value="{{ total_amount[0][0] }}">
-                            {% endif %}
-                            {% if stat_type == 'cust' %}
-                                <input type="hidden" id="graphLabel" value="Monthly Spending">
-                            {% elif stat_type == 'ba' %}
-                                <input type="hidden" id="graphLabel" value="Daily Commissions">
-                            {% endif %}
-                            <input type="hidden" id="dates" value="{{ past_year.strftime('%m/%d/%Y') }} TO {{ now.strftime('%m/%d/%Y') }}">
+                            
                         </div>
                         <div class="card shadow-sm">
-                            <!-- <h4 style="text-align: center;"><strong>My Past Spendings</strong></h4> -->
-                            <canvas id="monthlySpendingChart" width="300" height="300"></canvas>
-                            <hr>
-                            <form id="custStatRange" action="/custStatRange" method="POST">
-                                <div class="row">
-                                    <div class="col-md-5">
-                                        <fieldset>
-                                            <label for="searchFromDate">From:</label>
-                                            <!-- <input name="return" type="text" class="form-control date" id="return" placeholder="Select date..." required onchange='this.form.()'> -->
-                                            <input name="searchFromDate" type="date" class="form-control date" id="return" placeholder="Select date...">
-                                        </fieldset>
+                            {% if award_type == 'ba' %}
+                                <h4 style="text-align: center;"><strong>Your Top 5 Commissions Customer 🏆</strong></h4>
+                                <hr>
+                                {% for ccustomerPerson in ccustomer %}
+                                    <div class="row mb-4 cardDiv">
+                                        <h5>{{ ccustomerPerson[0] }}</h5>
+                                        <h5>${{ ccustomerPerson[1] }}</h5>
                                     </div>
-                                    <div class="col-md-5">
-                                        <fieldset>
-                                            <label for="searchToDate">To:</label>
-                                            <!-- <input name="return" type="text" class="form-control date" id="return" placeholder="Select date..." required onchange='this.form.()'> -->
-                                            <input name="searchToDate" type="date" class="form-control date" id="return" placeholder="Select date...">
-                                        </fieldset>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label style="color: #f4f4f4;">-</label>
-                                        <fieldset>
-                                            <button type="submit" class="btn">Search</button>
-                                        </fieldset>
-                                    </div>
-                                </div>
-                            </form>
-                            <input type="hidden" id="monthLabels" value='{{ month_labels | tojson }}'>
-                            <input type="hidden" id="monthlySpendingData" value='{{ monthly_spending | tojson }}'>
-
+                                {% endfor %}
+                            {% elif award_type == 'st' %}
+                                <h4 style="text-align: center;"><strong>Track My Past Commissions</strong></h4>
+                                <hr>
+                            {% endif %}
+                            
                         </div>
                     </div>
                 </div>                
