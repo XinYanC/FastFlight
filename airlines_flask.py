@@ -66,7 +66,34 @@ def home():
 	top_cities = cursor.fetchall()
 	cursor.close()
 
-	return render_template('index.html', top_cities=top_cities)
+	cursor = conn.cursor()
+	sql = """
+            SELECT 
+				a.airport_city, 
+				f.flight_num, 
+				DATE_FORMAT(f.departure_time, '%m/%d/%Y') AS departure_date, 
+				(ap.total_seats - COUNT(t.flight_num)) AS seats_left
+			FROM 
+				flight f
+			INNER JOIN 
+				airport a ON f.arrival_airport_name = a.airport_name
+			LEFT JOIN 
+				ticket t ON f.flight_num = t.flight_num
+			INNER JOIN 
+				airplane ap ON f.airplane_id = ap.airplane_id
+			WHERE
+				f.flight_status = 'upcoming'
+			GROUP BY 
+				f.flight_num
+			ORDER BY 
+				seats_left
+			LIMIT 3;
+            """
+	cursor.execute(sql)
+	top_flights = cursor.fetchall()
+	cursor.close()
+
+	return render_template('index.html', top_flights=top_flights, top_cities=top_cities)
 
 
 @app.route('/login')
