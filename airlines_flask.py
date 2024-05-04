@@ -1406,6 +1406,23 @@ def showAirplane():
 		return render_template('showCustomer.html', airline_name=airline_name, airplanes=airplanes)
 	else:
 		return render_template('showCustomer.html', message='No customers on flight found.')
+	
+@app.route('/addAirport')
+def addAirport():
+	return render_template('addAirport.html')
+
+@app.route('/addAirportRequest', methods=['GET', 'POST'])
+def addAirportRequest():
+	airport_name = request.form['airport_name']
+	airport_city = request.form['airport_city'].upper()
+
+	cursor = conn.cursor()
+	cursor.execute("INSERT INTO airport VALUES (%s, %s)",
+					(airport_name, airport_city))
+	conn.commit()
+	cursor.close()
+
+	return render_template('searchFlights.html', successfulAdd='Successfully Added Airport ' + airport_name + ' From ' + airport_city)
 
 app.secret_key = 'its a secret shhhhhhh'
 #Run the app on localhost port 5000
