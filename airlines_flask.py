@@ -1254,7 +1254,70 @@ def awards():
 		ccustomer = cursor.fetchall()
 		cursor.close()
 
-		return render_template('awards.html', awards_heading='My Top Customers', tcustomer=tcustomer, ccustomer=ccustomer, award_type='ba')
+		return render_template('awards.html', awards_heading='My Top Customers', tcustomer=tcustomer, ccustomer=ccustomer, award_type='ba', card='card')
+	elif 'airline_staff' in session:
+		cursor = conn.cursor()
+		cursor.execute("SELECT airline_name FROM airline_staff WHERE username = %s", (session['username'],))
+		airline_name = cursor.fetchone()[0]
+		cursor.close()
+
+		current_date = datetime.now()
+		one_month_ago = current_date - timedelta(days=30)
+		one_year_ago = current_date - timedelta(days=365)
+
+		# Query to get the top 5 booking agents based on ticket sales for the past month
+		query_month = """
+							SELECT 
+								t.booking_agent_id, 
+								COUNT(*) AS ticket_count
+							FROM 
+								flight f
+							INNER JOIN 
+								ticket t ON t.flight_num = f.flight_num
+							WHERE 
+								f.airline_name = %s 
+								AND t.booking_date BETWEEN %s AND %s 
+								AND t.booking_agent_id IS NOT NULL
+							GROUP BY 
+								t.booking_agent_id
+							ORDER BY 
+								ticket_count DESC
+							LIMIT 5
+		"""
+
+		query_commission = """
+							SELECT 
+								t.booking_agent_id, 
+								SUM(f.price * 0.1) AS commission
+							FROM 
+								flight f
+							INNER JOIN 
+								ticket t ON t.flight_num = f.flight_num
+							WHERE 
+								f.airline_name = %s 
+								AND t.booking_date BETWEEN %s AND %s 
+								AND t.booking_agent_id IS NOT NULL
+							GROUP BY 
+								t.booking_agent_id
+							ORDER BY 
+								commission DESC
+							LIMIT 5
+		"""
+
+		# Execute the queries for the past month and past year
+		cursor = conn.cursor()
+		cursor.execute(query_month, (airline_name, one_month_ago,current_date,))
+		top_agents_month = cursor.fetchall()
+
+		cursor.execute(query_month, (airline_name, one_year_ago,current_date,))
+		top_agents_year = cursor.fetchall()
+
+		cursor.execute(query_commission, (airline_name, one_year_ago,current_date,))
+		top_agents_commission = cursor.fetchall()
+
+		cursor.close()
+
+		return render_template('awards.html', awards_heading='Top '+ airline_name +' Booking Agents', top_agents_month=top_agents_month, top_agents_year=top_agents_year, top_agents_commission=top_agents_commission, award_type='st', card='shortcard')
 	return render_template('index.html') 
 
 @app.route('/createFlight')
@@ -1422,7 +1485,7 @@ def addAirportRequest():
 	conn.commit()
 	cursor.close()
 
-	return render_template('searchFlights.html', successfulAdd='Successfully Added Airport ' + airport_name + ' From ' + airport_city)
+	return render_template('searchFlights.html', successfulAdd='Successfully Added Airport ' + airport_name + ' From ' + airport_city, sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...')
 
 app.secret_key = 'its a secret shhhhhhh'
 #Run the app on localhost port 5000

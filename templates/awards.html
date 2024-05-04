@@ -45,6 +45,14 @@ http://www.tooplate.com/view/2093-flight
             text-align: center;
         }
 
+        .shortcard{
+            border: 1px solid #dee2e6; /* Light border */
+            border-radius: 8px; /* Rounded corners */
+            width: 30%;
+            padding: 3% 5%;
+            text-align: center;
+        }
+
         /* Style for card title */
         /* .card-title {
             font-size: 1.25rem; 
@@ -97,9 +105,9 @@ http://www.tooplate.com/view/2093-flight
                 </div>
                 <div class="container">
                     <div class="row cardDiv">
-                        <div class="card shadow-sm">
+                        <div class="{{card}} shadow-sm">
                             {% if award_type == 'ba' %}
-                                <h4 style="text-align: center;"><strong>Your Top 5 Tickets Customer 🏆</strong></h4>
+                                <h4 style="text-align: center;"><strong>Your Top 5 Ticket Customers 🏆</strong></h4>
                                 <hr>
                                 {% for tcustomerPerson in tcustomer %}
                                     <div class="row mb-4 cardDiv">
@@ -112,14 +120,24 @@ http://www.tooplate.com/view/2093-flight
                                     </div>
                                 {% endfor %}
                             {% elif award_type == 'st' %}
-                                <h4 style="text-align: center;"><strong>Track My Past Commissions</strong></h4>
+                                <h4 style="text-align: center;"><strong>Top 5 Ticket Booking Agents (Past Month) 🏆</strong></h4>
                                 <hr>
+                                {% for top_agents in top_agents_month %}
+                                    <div class="row mb-4 cardDiv">
+                                        <h5>{{ top_agents[0] }}</h5>
+                                        {% if top_agents[1] == 1 %}
+                                            <h5>{{ top_agents[1] }} ticket</h5>
+                                        {% else %}
+                                            <h5>{{ top_agents[1] }} tickets</h5>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
                             {% endif %}
                             
                         </div>
-                        <div class="card shadow-sm">
+                        <div class="{{card}} shadow-sm">
                             {% if award_type == 'ba' %}
-                                <h4 style="text-align: center;"><strong>Your Top 5 Commissions Customer 🏆</strong></h4>
+                                <h4 style="text-align: center;"><strong>Your Top 5 Commission Customers 🏆</strong></h4>
                                 <hr>
                                 {% for ccustomerPerson in ccustomer %}
                                     <div class="row mb-4 cardDiv">
@@ -128,11 +146,28 @@ http://www.tooplate.com/view/2093-flight
                                     </div>
                                 {% endfor %}
                             {% elif award_type == 'st' %}
-                                <h4 style="text-align: center;"><strong>Track My Past Commissions</strong></h4>
+                                <h4 style="text-align: center;"><strong>Top 5 Ticket Booking Agents (Past Year) 🏆</strong></h4>
                                 <hr>
-                            {% endif %}
-                            
+                                {% for top_agents in top_agents_year %}
+                                <div class="row mb-4 cardDiv">
+                                    <h5>{{ top_agents[0] }}</h5>
+                                    <h5>${{ top_agents[1] }}</h5>
+                                </div>
+                                {% endfor %}
+                            {% endif %} 
                         </div>
+                        {% if award_type == 'st' %}
+                        <div class="{{card}} shadow-sm">
+                            <h4 style="text-align: center;"><strong>Top 5 Commission Booking Agents 🏆</strong></h4>
+                            <hr>
+                            {% for commission in top_agents_commission %}
+                            <div class="row mb-4 cardDiv">
+                                <h5>{{ commission[0] }}</h5>
+                                <h5>${{ commission[1] }}</h5>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
                     </div>
                 </div>                
             </div>
