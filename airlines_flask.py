@@ -921,7 +921,9 @@ def bookFlight():
 			conn.commit()
 			cursor.close()
 
-			return render_template('successfulBooking.html')
+			return render_template('successfulBooking.html', ticket_id=ticket_id)
+	elif 'booking_agent' in session:
+		return render_template('bookFlights.html', flight_number=flight_number, ticket_id=ticket_id)
 	else:
 		return render_template('login.html', registerSuccess = 'Log in to book your tickets!')
 	
@@ -951,7 +953,31 @@ def ticket_id_exists(ticket_id):
 	count = cursor.fetchone()[0]
 	cursor.close()
 	return count > 0
- 
+
+@app.route('/bookFlights')
+def bookFlights():
+	return render_template('bookFlights.html')
+
+@app.route('/inputCustInfo')
+def inputCustInfo():
+	cust_email = request.form['cust_email']
+	flight_number = request.form['flight_number']
+	ticket_id = request.form['ticket_id']
+	booking_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+	cursor = conn.cursor()
+	cursor.execute("SELECT booking_agent_id FROM booking_agent WHERE booking_agent_email = %s", (session['username'],))
+	booking_agent_id = cursor.fetchone()[0]
+	cursor.close()
+
+	cursor = conn.cursor()
+	cursor.execute("INSERT INTO ticket (ticket_id, flight_num, cust_email, booking_agent_id, booking_date) VALUES (%s, %s, %s, %s, %s)",
+					(ticket_id, flight_number, cust_email, booking_agent_id, booking_date))
+	conn.commit()
+	cursor.close()
+
+	return render_template('successfulBooking.html', ticket_id=ticket_id)
+
 
 app.secret_key = 'its a secret shhhhhhh'
 #Run the app on localhost port 5000
