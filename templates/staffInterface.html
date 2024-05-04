@@ -56,6 +56,9 @@ http://www.tooplate.com/view/2093-flight
                                 {% if staff_operator %}
                                     <li><a href="/changeFlightStatus"><em>Change Flight Status</em><i class="fa fa-chevron-right"></i></a></li>
                                 {% endif %}
+                                {% if staff_admin %}
+                                    <li><a href="/addAirplane"><em>Add Airplane</em><i class="fa fa-chevron-right"></i></a></li>
+                                {% endif %}
                             </ul>
                             <a href="/logout" style="color:rgb(133, 213, 237); display: inline;"><strong>Log out here!</strong></a>
                         </div>

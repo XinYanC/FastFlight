@@ -98,8 +98,10 @@ def staffInterface():
 	staff_operator = False
 	if 'operator' in session:
 		staff_operator = True
+	if 'admin' in session:
+		staff_admin = True
 
-	return render_template('staffInterface.html', staff_name=staff_name, staff_operator=staff_operator)
+	return render_template('staffInterface.html', staff_name=staff_name, staff_operator=staff_operator, staff_admin=staff_admin)
 
 @app.route('/flightResult')
 def flightResult():
@@ -1299,7 +1301,6 @@ def inputFlightInfo():
 	# airline_name = request.args.get('airline_name')
 	# flight_num = request.form['flight_num']
 	flight_num = request.form.get('flight_num')
-	print('showwwwwww',flight_num)
 	airline_name = request.form.get('airline_name')
 	# airline_name = request.form['airline_name']
 	depart_airport_name = request.form['depart_airport_name']
@@ -1317,7 +1318,33 @@ def inputFlightInfo():
 	conn.commit()
 	cursor.close()
 
-	return render_template('viewFlights.html', successfulAdd='Successfully Added Flight!')
+	return render_template('viewFlights.html', successfulAdd='Successfully Added Flight!', sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...')
+
+@app.route('/changeFlightStatus', methods=['GET', 'POST'])
+def changeFlightStatus():
+	cursor = conn.cursor()
+	cursor.execute("SELECT airline_name FROM airline_staff WHERE username = %s", (session['username'],))
+	airline_name = cursor.fetchone()[0]
+	cursor.close()
+
+	cursor = conn.cursor()
+	cursor.execute("SELECT flight_num FROM flight WHERE airline_name =%s ORDER BY flight_num", airline_name)
+	flight_num = [row[0] for row in cursor.fetchall()]
+	cursor.close()
+
+	return render_template('changeFlightStatus.html', flight_num=flight_num)
+
+@app.route('/changeFlightStatusRequest', methods=['GET', 'POST'])
+def changeFlightStatusRequest():
+	flight_num = request.form.get('flight_num')
+	flight_status = request.form['flight_status']
+
+	cursor = conn.cursor()
+	cursor.execute("UPDATE flight SET flight_status = %s WHERE flight_num = %s", (flight_status, flight_num))
+	conn.commit()
+	cursor.close()
+
+	return render_template('viewFlights.html', successfulAdd='Successfully Updated Flight!', sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...')
 
 app.secret_key = 'its a secret shhhhhhh'
 #Run the app on localhost port 5000
