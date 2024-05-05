@@ -24,34 +24,40 @@ conn = pymysql.connect(host='localhost',
 #Define a route to hello function
 @app.route('/')
 def home():
-	if ('username' in session):
+	if 'username' in session:
 		if 'customer' in session:
 			cursor = conn.cursor()
 			cursor.execute("SELECT c_name FROM customer WHERE cust_email = %s", session['username'])
-			c_name = cursor.fetchone()[0]
+			c_name = cursor.fetchone()
 			cursor.close()
+			if c_name:
+				c_name = c_name[0]
 
-			# Split the full name into words
-			name_parts = c_name.split()
-			# Join all but the last word
-			first_name = ' '.join(name_parts[:-1])
-			
-			return redirect(url_for('customerInterface', cust_name=first_name))
+				name_parts = c_name.split()
+				first_name = ' '.join(name_parts[:-1])
+
+				return redirect(url_for('customerInterface', cust_name=first_name))
+			else:
+				pass
 		elif 'booking_agent' in session:
 			cursor = conn.cursor()
-			cursor.execute("SELECT booking_agent_id FROM booking_agent WHERE booking_agent_email = %s", session['username'])
-			booking_agent_id = cursor.fetchone()[0]
+			cursor.execute("SELECT booking_agent_id FROM booking_agent WHERE booking_agent_email = '{}'".format(session['username']))
+			booking_agent_id = cursor.fetchone()
 			cursor.close()
-
-			return redirect(url_for('bookingAgentInterface', booking_agent_id=booking_agent_id))
+			if booking_agent_id:
+				return redirect(url_for('bookingAgentInterface', booking_agent_id=booking_agent_id[0]))
+			else:
+				pass
 		elif 'airline_staff' in session:
 			cursor = conn.cursor()
 			cursor.execute("SELECT first_name FROM airline_staff WHERE username = %s", session['username'])
-			first_name = cursor.fetchone()[0]
+			first_name = cursor.fetchone()
 			cursor.close()
+			if first_name:
+				return redirect(url_for('staffInterface', staff_name=first_name[0]))
+			else:
+				pass
 
-			return redirect(url_for('staffInterface', staff_name=first_name))
-		
 	cursor = conn.cursor()
 	sql = """
             SELECT a.airport_city, COUNT(*) AS ticket_count
@@ -350,13 +356,14 @@ def stats():
 
 		cursor = conn.cursor()
 		for day in past_thirty_days:
+			formatted_day = day.strftime("%Y-%m-%d")
 			cursor.execute("""
 				SELECT SUM(f.price * 0.1) AS commission
 				FROM ticket t
 				INNER JOIN flight f ON t.flight_num = f.flight_num
 				WHERE t.booking_agent_id = %s
 					AND DATE(t.booking_date) = %s;
-			""", (booking_agent_id, day))
+			""", (booking_agent_id, formatted_day))
 			amount = cursor.fetchone()
 			if (amount):
 				daily_commission.append(amount[0])
@@ -365,9 +372,8 @@ def stats():
 
 		cursor.close()
 
-		daily_commission.reverse()
-		# Convert Decimal objects to floating-point numbers
 		daily_commission = [float(amount) if amount else 0.0 for amount in daily_commission]
+		daily_commission.reverse()
 
 		# Convert the lists to JSON format
 		day_labels_json = json.dumps(day_labels)
@@ -416,15 +422,228 @@ def stats():
 
 		cursor.close()
 
-		monthly_spending.reverse()
-		# Convert Decimal objects to floating-point numbers
 		monthly_spending = [float(amount) if amount else 0.0 for amount in monthly_spending]
+		monthly_spending.reverse()
 
 		# Convert the lists to JSON format
 		month_labels_json = json.dumps(month_labels)
 		monthly_spending_json = json.dumps(monthly_spending)
 
 		return render_template('stats.html', stats_heading='My Spendings', total_amount=total_amount, now=now, past_year=past_year, monthly_spending=monthly_spending_json, month_labels=month_labels_json, stat_type='cust')
+	return render_template('stats.html')
+
+@app.route('/companyStats')
+def companyStats():
+	if 'airline_staff' in session:
+		now = datetime.now()
+		last_month_date = now - timedelta(days=30)
+		last_year_date = now - timedelta(days=365)
+		cursor = conn.cursor()
+		cursor.execute("SELECT airline_name FROM airline_staff WHERE username = %s", (session['username'],))
+		airline_name = cursor.fetchone()[0]
+		cursor.close()
+		cursor = conn.cursor()
+		cursor.execute("""
+			SELECT SUM(f.price) 
+			FROM ticket t 
+			INNER JOIN flight f ON t.flight_num = f.flight_num 
+			WHERE f.airline_name = %s 
+				AND t.booking_date >= %s
+		""", (airline_name, last_month_date))
+		total_month_sales = cursor.fetchone()[0]
+		cursor.close()
+		cursor = conn.cursor()
+		cursor.execute("""
+			SELECT SUM(f.price) 
+			FROM ticket t 
+			INNER JOIN flight f ON t.flight_num = f.flight_num 
+			WHERE f.airline_name = %s 
+				AND t.booking_date >= %s
+		""", (airline_name, last_year_date))
+		total_year_sales = cursor.fetchone()[0]
+		cursor.close()
+		
+		def calculate_direct_sales(date):
+			cursor = conn.cursor()
+			cursor.execute("""
+				SELECT SUM(f.price) 
+				FROM ticket t 
+				INNER JOIN flight f ON t.flight_num = f.flight_num 
+				WHERE t.booking_agent_id IS NULL 
+					AND f.airline_name = %s 
+					AND t.booking_date >= %s
+			""", (airline_name, last_month_date))
+			direct_sales = cursor.fetchone()[0]
+			cursor.close()
+			return direct_sales if direct_sales else 0
+
+		def calculate_indirect_sales(date):
+			cursor = conn.cursor()
+			cursor.execute("""
+				SELECT SUM(f.price) 
+				FROM ticket t 
+				INNER JOIN flight f ON t.flight_num = f.flight_num 
+				WHERE t.booking_agent_id IS NOT NULL 
+					AND f.airline_name = %s 
+					AND t.booking_date >= %s
+			""", (airline_name, last_year_date))
+			indirect_sales = cursor.fetchone()[0]
+			cursor.close()
+			return indirect_sales if indirect_sales else 0
+
+		# Calculate revenue from direct sales in the last month
+		direct_sales_last_month = calculate_direct_sales(last_month_date)
+		# Calculate revenue from indirect sales in the last month
+		indirect_sales_last_month = calculate_indirect_sales(last_month_date)
+		last_month = [total_month_sales, direct_sales_last_month,indirect_sales_last_month]
+		# Calculate revenue from direct sales in the last year
+		direct_sales_last_year = calculate_direct_sales(last_year_date)
+		# Calculate revenue from indirect sales in the last year
+		indirect_sales_last_year = calculate_indirect_sales(last_year_date)
+		last_year = [total_year_sales, direct_sales_last_year,indirect_sales_last_year]
+
+		past_six_months = [now - timedelta(days=30*i) for i in range(1, 7)]
+		month_labels = [month.strftime("%B %Y") for month in past_six_months]
+		month_labels.reverse()
+
+		monthly_sold = []
+
+		for month in past_six_months:
+			start_of_month = month.replace(day=1)
+			end_of_month = month.replace(day=calendar.monthrange(month.year, month.month)[1])
+
+			cursor = conn.cursor()
+			cursor.execute("""
+				SELECT COUNT(*) AS total_amount
+				FROM ticket t 
+				INNER JOIN flight f ON t.flight_num = f.flight_num 
+				WHERE f.airline_name = %s
+					AND DATE(t.booking_date) BETWEEN %s AND %s;
+			""", (airline_name, start_of_month.date(), end_of_month.date()))
+			amount = cursor.fetchone()[0]
+			monthly_sold.append(amount)
+			cursor.close()
+
+		print(month_labels)
+		print(monthly_sold)
+
+		# monthly_sold.reverse()
+
+		month_labels_json = json.dumps(month_labels)
+		monthly_earning_json = json.dumps(monthly_sold)
+		
+		return render_template('companyStats.html', 
+								stats_heading='Airline Revenue and Report', 
+								last_month=last_month,
+								last_year=last_year, 
+								now=now,
+								past_month=last_month_date,
+								last_year_date=last_year_date,
+								monthly_earning=monthly_earning_json, 
+								month_labels=month_labels_json)
+	return render_template('stats.html')
+
+@app.route('/companyStatsResults', methods=['GET', 'POST'])
+def companyStatsResults():
+	searchFromDate = request.form['searchFromDate']
+	searchToDate = request.form['searchToDate']
+
+	if 'airline_staff' in session:
+		from_date = datetime.strptime(searchFromDate, "%Y-%m-%d")
+		to_date = datetime.strptime(searchToDate, "%Y-%m-%d")
+
+
+		cursor = conn.cursor()
+		cursor.execute("SELECT airline_name FROM airline_staff WHERE username = %s", (session['username'],))
+		airline_name = cursor.fetchone()[0]
+		cursor.close()
+
+		cursor = conn.cursor()
+		cursor.execute("""
+			SELECT IFNULL(SUM(f.price), 0)
+			FROM ticket t 
+			INNER JOIN flight f ON t.flight_num = f.flight_num 
+			WHERE f.airline_name = %s 
+				AND DATE(t.booking_date) BETWEEN DATE(%s) AND DATE(%s)
+		""", (airline_name, from_date, to_date))
+		total_month_sales = cursor.fetchone()[0]
+		cursor.close()
+		
+		def calculate_direct_sales(from_date, to_date):
+			cursor = conn.cursor()
+			cursor.execute("""
+				SELECT SUM(f.price) 
+				FROM ticket t 
+				INNER JOIN flight f ON t.flight_num = f.flight_num 
+				WHERE t.booking_agent_id IS NULL 
+					AND f.airline_name = %s 
+					AND DATE(t.booking_date) BETWEEN DATE(%s) AND DATE(%s)
+			""", (airline_name, from_date, to_date))
+			direct_sales = cursor.fetchone()[0]
+			cursor.close()
+			return direct_sales if direct_sales else 0
+
+		def calculate_indirect_sales(from_date, to_date):
+			cursor = conn.cursor()
+			cursor.execute("""
+				SELECT SUM(f.price) 
+				FROM ticket t 
+				INNER JOIN flight f ON t.flight_num = f.flight_num 
+				WHERE t.booking_agent_id IS NOT NULL 
+					AND f.airline_name = %s 
+					AND DATE(t.booking_date) BETWEEN DATE(%s) AND DATE(%s)
+			""", (airline_name, from_date, to_date))
+			indirect_sales = cursor.fetchone()[0]
+			cursor.close()
+			return indirect_sales if indirect_sales else 0
+
+		# Calculate revenue from direct sales in the last month
+		direct_sales_last_month = calculate_direct_sales(from_date, to_date)
+		# Calculate revenue from indirect sales in the last month
+		indirect_sales_last_month = calculate_indirect_sales(from_date, to_date)
+		last_month = [total_month_sales, direct_sales_last_month,indirect_sales_last_month]
+		
+
+		days_between = (to_date - from_date).days 
+		date_range = [to_date - timedelta(days=i) for i in range(days_between)]
+		date_range.reverse()
+
+		day_labels = [day.strftime("%m/%d") for day in date_range]
+
+		daily_sold = []
+
+		cursor = conn.cursor()
+		for day in date_range:
+			cursor.execute("""
+				SELECT COUNT(*) AS total_amount
+				FROM ticket t
+				INNER JOIN flight f ON t.flight_num = f.flight_num
+				WHERE f.airline_name = %s
+					AND DATE(t.booking_date) = %s;
+			""", (airline_name, day))
+			amount = cursor.fetchone()
+			if (amount):
+				daily_sold.append(amount[0])
+			else:
+				daily_sold.append(0)
+
+		cursor.close()
+
+		# Convert Decimal objects to floating-point numbers
+		daily_sold = [float(amount) if amount else 0.0 for amount in daily_sold]
+
+		# Convert the lists to JSON format
+		day_labels_json = json.dumps(day_labels)
+		daily_sold_json = json.dumps(daily_sold)
+
+		
+		return render_template('companyStats.html', 
+								stats_heading='Airline Revenue and Report', 
+								last_month=last_month, 
+								now=to_date,
+								past_month=from_date,
+								monthly_earning=daily_sold_json, 
+								month_labels=day_labels_json)
 	return render_template('stats.html')
 
 @app.route('/custStatRange', methods=['GET', 'POST'])
@@ -440,7 +659,7 @@ def custStatRange():
 		from_date = datetime.strptime(searchFromDate, "%Y-%m-%d")
 		to_date = datetime.strptime(searchToDate, "%Y-%m-%d")
 
-		days_between = (to_date - from_date).days 
+		days_between = (to_date - from_date).days + 1
 		date_range = [to_date - timedelta(days=i) for i in range(days_between)]
 		date_range.reverse()
 
@@ -468,26 +687,26 @@ def custStatRange():
 
 		cursor = conn.cursor()
 		for day in date_range:
+			formatted_day = day.strftime("%Y-%m-%d")  # Format the date as 'YYYY-MM-DD'
 			cursor.execute("""
 				SELECT SUM(f.price * 0.1) AS commission
 				FROM ticket t
 				INNER JOIN flight f ON t.flight_num = f.flight_num
 				WHERE t.booking_agent_id = %s
 					AND DATE(t.booking_date) = %s;
-			""", (booking_agent_id, day))
+			""", (booking_agent_id, formatted_day))
 			amount = cursor.fetchone()
-			if (amount):
+			if amount:
 				daily_commission.append(amount[0])
 			else:
 				daily_commission.append(0)
 
 		cursor.close()
 
-		daily_commission.reverse()
-		# Convert Decimal objects to floating-point numbers
+		# daily_commission.reverse()
+		
 		daily_commission = [float(amount) if amount else 0.0 for amount in daily_commission]
 
-		# Convert the lists to JSON format
 		day_labels_json = json.dumps(day_labels)
 		daily_commission_json = json.dumps(daily_commission)
 		
@@ -503,7 +722,7 @@ def custStatRange():
 		months_between = [
 			from_date + relativedelta(months=i) for i in range((to_date.year - from_date.year) * 12 + to_date.month - from_date.month + 1)
 		]
-		months_between.reverse()  # Reverse the list to have the oldest month first
+		# months_between.reverse()  # Reverse the list to have the oldest month first
 
 		month_labels = [month.strftime("%B %Y") for month in months_between]
 
@@ -540,8 +759,7 @@ def custStatRange():
 
 		cursor.close()
 
-		monthly_spending.reverse()
-		# Convert Decimal objects to floating-point numbers
+		# monthly_spending.reverse()
 		monthly_spending = [float(amount) if amount else 0.0 for amount in monthly_spending]
 
 		# Convert the lists to JSON format

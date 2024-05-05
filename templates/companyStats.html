@@ -98,51 +98,39 @@ http://www.tooplate.com/view/2093-flight
                 <div class="container">
                     <div class="row cardDiv">
                         <div class="card shadow-sm">
-                            {% if stat_type == 'cust' %}
-                                <h4 style="text-align: center;"><strong>Track My Past Spendings</strong></h4>
-                            {% elif stat_type == 'ba' %}
-                                <h4 style="text-align: center;"><strong>Track My Past Commissions</strong></h4>
-                            {% endif %}
+                            <h4 style="text-align: center;"><strong>Past Revenue</strong></h4>
+                            
                             <!-- <select id="timeRange" name="timeRange">
                                 <option value="365">Past 1 year</option>
                                 <option value="183">Past 6 months</option>
                             </select>                               -->
                             <!-- HTML canvas element to render the pie chart -->
                             <hr>
-                            {% if stat_type == 'cust' and total_amount[0] == 0 %}
-                                <p style="color:rgb(175, 42, 42)">*No money spent</p>
-                            {% elif stat_type == 'ba' and total_amount[0][0] == 0 %}
-                                <p style="color:rgb(175, 42, 42)">*No commission made</p>
+                            {% if last_month[0] == 0 %}
+                                <p style="color:rgb(175, 42, 42)">*No Revenue made</p>
                             {% endif %}
 
                             <canvas id="myPieChart" style="margin: auto; display: inline-block;"></canvas>
+                            <h5 style="text-align: center;">Total Revenue for Past 30 Days: <strong>${{last_month[0]}}</strong></h5>
+                            <input type="hidden" id="direct_sales_last_month" value="{{ last_month[1] }}">
+                            <input type="hidden" id="indirect_sales_last_month" value="{{ last_month[2] }}">
+                            <input type="hidden" id="month_dates" value="{{ past_month.strftime('%m/%d/%Y') }} TO {{ now.strftime('%m/%d/%Y') }}">
+                            <input type="hidden" id="bool_date" value="{{ last_year_date }}">
                             
-                            <hr>
-                            {% if stat_type == 'cust' %}
-                                <h5 style="text-align: center;">Total Amount Spent: <strong>${{total_amount[0]}}</strong></h5>
-                            {% elif stat_type == 'ba' %}
-                                <h5 style="text-align: center;">Average Commission Received Per Ticket Booked: <strong>${{ '{:.2f}'.format(total_amount[0][1]) }}</strong></h5>
-                                <h5 style="text-align: center;">Total Number of Tickets Sold: <strong>{{total_amount[0][2]}} tickets</strong></h5>
+                            {% if last_year_date %}
+                                <hr>
+                                <canvas id="mySecondPieChart" style="margin: auto; display: inline-block;"></canvas>
+                                <h5 style="text-align: center;">Total Revenue for Past Year: <strong>${{last_year[0]}}</strong></h5>
+                                <input type="hidden" id="direct_sales_last_year" value="{{ last_year[1] }}">
+                                <input type="hidden" id="indirect_sales_last_year" value="{{ last_year[2] }}">
+                                <input type="hidden" id="year_dates" value="{{ last_year_date.strftime('%m/%d/%Y') }} TO {{ now.strftime('%m/%d/%Y') }}">
                             {% endif %}
-
-                            {% if stat_type == 'cust' %}
-                                <input type="hidden" id="totalAmountInput" value="{{ total_amount[0] }}">
-                            {% elif stat_type == 'ba' %}
-                                <input type="hidden" id="totalAmountInput" value="{{ total_amount[0][0] }}">
-                            {% endif %}
-
-                            {% if stat_type == 'cust' %}
-                                <input type="hidden" id="graphLabel" value="Monthly Spending">
-                            {% elif stat_type == 'ba' %}
-                                <input type="hidden" id="graphLabel" value="Daily Commissions">
-                            {% endif %}
-                            <input type="hidden" id="dates" value="{{ past_year.strftime('%m/%d/%Y') }} TO {{ now.strftime('%m/%d/%Y') }}">
                         </div>
                         <div class="card shadow-sm">
                             <!-- <h4 style="text-align: center;"><strong>My Past Spendings</strong></h4> -->
                             <canvas id="monthlySpendingChart" width="300" height="300"></canvas>
                             <hr>
-                            <form id="custStatRange" action="/custStatRange" method="POST">
+                            <form id="companyStatsResults" action="/companyStatsResults" method="POST">
                                 <div class="row">
                                     <div class="col-md-5">
                                         <fieldset>
@@ -167,7 +155,7 @@ http://www.tooplate.com/view/2093-flight
                                 </div>
                             </form>
                             <input type="hidden" id="monthLabels" value='{{ month_labels | tojson }}'>
-                            <input type="hidden" id="monthlySpendingData" value='{{ monthly_spending | tojson }}'>
+                            <input type="hidden" id="monthlySpendingData" value='{{ monthly_earning | tojson }}'>
 
                         </div>
                     </div>
@@ -207,19 +195,72 @@ http://www.tooplate.com/view/2093-flight
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             // Get total amount and number of flights from Flask
-            var totalAmount = parseFloat($('#totalAmountInput').val());
-            var bookDates = $('#dates').val();
-            var graphLabel = $('#graphLabel').val();
-            console.log(totalAmount)
+            var direct_sales_last_month = parseFloat($('#direct_sales_last_month').val());
+            var indirect_sales_last_month = parseFloat($('#indirect_sales_last_month').val());
+            var month_dates = $('#month_dates').val();
+            var sales_last_month = [direct_sales_last_month,indirect_sales_last_month]
+            
+
+            var year_dates = $('#bool_date').val();
+            if (year_dates) {
+                var direct_sales_last_year = parseFloat($('#direct_sales_last_year').val());
+                var indirect_sales_last_year = parseFloat($('#indirect_sales_last_year').val());
+                var sales_last_year = [direct_sales_last_year,indirect_sales_last_year]
+                var year_dates = $('#year_dates').val();
+
+                var ctx = document.getElementById('mySecondPieChart').getContext('2d');
+                var myPieChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['FROM ' + year_dates],
+                        datasets: [{
+                            label: 'Total Year Revenue',
+                            data: sales_last_year, // Pass total amount data from Flask to HTML
+                            backgroundColor: ['rgba(255, 99, 132, 0.5)'], // Single color for the pie chart
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: false,
+                        cutoutPercentage: 80,
+                        animation: {
+                            animateScale: true,
+                            animateRotate: true
+                        },
+                        title: {
+                            display: false
+                        },
+                        legend: {
+                            display: false
+                        },
+                        tooltips: {
+                            enabled: false
+                        },
+                        plugins: {
+                            datalabels: {
+                                display: false
+                            }
+                        },
+                        plugins: {
+                            datalabels: {
+                                display: false
+                            }
+                        }
+                    }
+
+                });
+            } 
+
 
             var ctx = document.getElementById('myPieChart').getContext('2d');
             var myPieChart = new Chart(ctx, {
                 type: 'pie',
                 data: {
-                    labels: ['FROM ' + bookDates],
+                    labels: ['FROM ' + month_dates],
                     datasets: [{
-                        label: 'Total Amount Spent',
-                        data: [totalAmount], // Pass total amount data from Flask to HTML
+                        label: 'Total Month Revenue',
+                        data: sales_last_month, // Pass total amount data from Flask to HTML
                         backgroundColor: ['rgba(255, 99, 132, 0.5)'], // Single color for the pie chart
                         borderColor: 'rgba(255, 99, 132, 1)',
                         borderWidth: 1
@@ -298,7 +339,7 @@ http://www.tooplate.com/view/2093-flight
                 data: {
                     labels: monthLabelsDATA,
                     datasets: [{
-                        label: graphLabel,
+                        label: 'Total Tickets Sold Per Month',
                         data: monthlySpendingDataDATA, // Limit to the first 6 months
                         backgroundColor: 'rgba(54, 162, 235, 0.5)',
                         borderColor: 'rgba(54, 162, 235, 1)',
