@@ -1826,6 +1826,116 @@ def addBookingAgentRequest():
 		cursor.close()
 		return render_template('addBookingAgent.html', successfulAdd=booking_agent_email + ' is not registered', airline_name=airline_name)
 
+@app.route('/searchCustomer', methods=['GET', 'POST'])
+def searchCustomer():
+	cursor = conn.cursor()
+	cursor.execute("SELECT airline_name FROM airline_staff WHERE username = %s", (session['username'],))
+	airline_name = cursor.fetchone()[0]
+	cursor.close()
+
+	cursor = conn.cursor()
+	sql = """
+			SELECT c.c_name, COUNT(t.ticket_id) AS ticket_count, c.cust_email
+			FROM ticket t
+			INNER JOIN customer c ON t.cust_email = c.cust_email
+			INNER JOIN flight f ON t.flight_num = f.flight_num
+			WHERE f.airline_name = %s
+			GROUP BY c.c_name
+			ORDER BY ticket_count DESC
+			LIMIT %s
+		"""
+	cursor.execute(sql, (airline_name, 10))
+	customers = cursor.fetchall()
+	cursor.close()
+
+	return render_template('searchCustomer.html', cust_email='Enter customer email...', custNum='XXXX', cust_heading='Most Frequent Customers', customers=customers, result=False, airline_name=airline_name)
+
+@app.route('/searchCustomerResult', methods=['GET', 'POST'])
+def searchCustomerResult():
+	airline_name = request.args.get('airline_name')
+	cust_email_unhide = request.form.get('cust_email')
+	cust_email_hide = request.args.get('cust_email_hide')
+	custNum = request.form.get('custNum')
+	print(custNum)
+
+	if cust_email_unhide:
+		cust_email = cust_email_unhide
+	else:
+		cust_email = cust_email_hide
+
+	cursor = conn.cursor()
+	sql = "SELECT c_name FROM customer WHERE cust_email = %s"
+	cursor.execute(sql, (cust_email,))
+	c_name = cursor.fetchone()[0]
+
+	if custNum:
+		cursor = conn.cursor()
+		cursor.execute("SELECT RIGHT(phone_number, 4) FROM customer WHERE cust_email = %s", (cust_email,))
+		result = cursor.fetchone()[0]
+
+		if result == custNum:
+			cursor = conn.cursor()
+			sql = """
+				SELECT 
+					f.airline_name, 
+					f.flight_num, 
+					TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
+					TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
+					f.price,
+					DATE(f.departure_time) AS formatted_departure_date,
+					a.airport_name,
+					a.airport_city
+				FROM 
+					ticket t
+				INNER JOIN 
+					customer c ON t.cust_email = c.cust_email
+				INNER JOIN 
+					flight f ON t.flight_num = f.flight_num
+				INNER JOIN 
+					airport a ON f.depart_airport_name = a.airport_name
+				WHERE 
+					f.airline_name = %s
+					AND c.cust_email = %s;
+			"""
+			cursor.execute(sql, (airline_name, cust_email))
+			customerData = cursor.fetchall()
+			cursor.close()
+
+			return render_template('searchCustomer.html', cust_email=cust_email, custNum=custNum, cust_heading='Most Frequent Customers', result=True, customerData=customerData)
+		else:
+				return render_template('searchCustomer.html', cust_heading='User Not Found', result=True, message='Customer information does not match. Please try again.', cust_email='Enter customer email...', custNum='XXXX')
+	else:
+		cursor = conn.cursor()
+		sql = """
+			SELECT 
+				f.airline_name, 
+				f.flight_num, 
+				TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
+				TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
+				f.price,
+				DATE(f.departure_time) AS formatted_departure_date,
+				a.airport_name,
+				a.airport_city
+			FROM 
+				ticket t
+			INNER JOIN 
+				customer c ON t.cust_email = c.cust_email
+			INNER JOIN 
+				flight f ON t.flight_num = f.flight_num
+			INNER JOIN 
+				airport a ON f.depart_airport_name = a.airport_name
+			WHERE 
+				f.airline_name = %s
+				AND c.cust_email = %s;
+		"""
+		cursor.execute(sql, (airline_name, cust_email))
+		customerData = cursor.fetchall()
+		cursor.close()
+
+		print(customerData[0])
+
+		return render_template('searchCustomer.html', cust_email=cust_email, custNum='XXXX', cust_heading=c_name+'\'s History', result=True, customerData=customerData)
+		
 app.secret_key = 'its a secret shhhhhhh'
 #Run the app on localhost port 5000
 #debug = True -> you don't have to restart flask
