@@ -206,11 +206,10 @@ http://www.tooplate.com/view/2093-flight
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Get total amount and number of flights from Flask
             var totalAmount = parseFloat($('#totalAmountInput').val());
             var bookDates = $('#dates').val();
             var graphLabel = $('#graphLabel').val();
-            console.log(totalAmount)
+            
 
             var ctx = document.getElementById('myPieChart').getContext('2d');
             var myPieChart = new Chart(ctx, {

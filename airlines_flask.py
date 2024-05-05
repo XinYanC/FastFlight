@@ -26,6 +26,7 @@ conn = pymysql.connect(host='localhost',
 def home():
 	if 'username' in session:
 		if 'customer' in session:
+			conn.ping(reconnect=True)
 			cursor = conn.cursor()
 			cursor.execute("SELECT c_name FROM customer WHERE cust_email = %s", session['username'])
 			c_name = cursor.fetchone()
@@ -40,6 +41,7 @@ def home():
 			else:
 				pass
 		elif 'booking_agent' in session:
+			conn.ping(reconnect=True)
 			cursor = conn.cursor()
 			cursor.execute("SELECT booking_agent_id FROM booking_agent WHERE booking_agent_email = '{}'".format(session['username']))
 			booking_agent_id = cursor.fetchone()
@@ -49,6 +51,7 @@ def home():
 			else:
 				pass
 		elif 'airline_staff' in session:
+			conn.ping(reconnect=True)
 			cursor = conn.cursor()
 			cursor.execute("SELECT first_name FROM airline_staff WHERE username = %s", session['username'])
 			first_name = cursor.fetchone()
@@ -57,7 +60,8 @@ def home():
 				return redirect(url_for('staffInterface', staff_name=first_name[0]))
 			else:
 				pass
-
+	
+	conn.ping(reconnect=True)
 	cursor = conn.cursor()
 	sql = """
             SELECT a.airport_city, COUNT(*) AS ticket_count
@@ -768,6 +772,7 @@ def viewFlights():
 	if 'username' in session:
 		current_date = datetime.now().date()
 		end_date = current_date + timedelta(days=30)
+		
 		if 'booking_agent' in session:
 			flight_sql = """
 							SELECT 
@@ -826,8 +831,8 @@ def viewFlights():
 								ticket t ON f.flight_num = t.flight_num
 							WHERE 
 								s.username = %s
-								AND f.departure_time >= %s
-								AND f.departure_time < %s
+								AND f.departure_time >= DATE(%s)
+								AND f.departure_time < DATE(%s)
 								AND f.flight_status = 'upcoming'
 							ORDER BY 
 								formatted_departure_date, formatted_departure_time;
@@ -837,6 +842,7 @@ def viewFlights():
 			with conn.cursor() as cursor:
 				if 'airline_staff' in session: 
 					cursor.execute(flight_sql, (session['username'], current_date, end_date))
+					print('hello   ',current_date, end_date)
 				else:
 					cursor.execute(flight_sql, session['username'])
 				flights = cursor.fetchall()
@@ -1295,32 +1301,35 @@ def viewFlightsResults():
 
 @app.route('/bookFlight', methods=['POST'])
 def bookFlight():
-	def generate_ticket_id():
-		cursor = conn.cursor()
-		cursor.execute("SELECT ticket_id FROM ticket ORDER BY booking_date DESC LIMIT 1")
-		last_ticket_id = cursor.fetchone()
-
-		if last_ticket_id is None:
-			last_ticket_id = 0
-		else:
-			last_ticket_id = int(last_ticket_id[0])
-
-		new_ticket_id = last_ticket_id + 1
-
-		return str(new_ticket_id).zfill(5)
-
-	def ticket_id_exists(ticket_id):
-		cursor = conn.cursor()
-		cursor.execute("SELECT COUNT(*) FROM ticket WHERE ticket_id = %s", ticket_id)
-		count = cursor.fetchone()[0]
-		cursor.close()
-		return count > 0
 
 	flight_number = request.form['flight_number']
-	ticket_id = generate_ticket_id()
 
-	while ticket_id_exists(ticket_id):
-		ticket_id = generate_ticket_id()
+	conn.ping(reconnect=True)
+	cursor = conn.cursor()
+	cursor.execute("SELECT ticket_id FROM ticket ORDER BY booking_date DESC LIMIT 1")
+	last_ticket_id = cursor.fetchone()
+
+	if last_ticket_id is None:
+		last_ticket_id = 0
+	else:
+		last_ticket_id = int(last_ticket_id[0])
+
+	new_ticket_id = last_ticket_id + 1
+	ticket_id = str(new_ticket_id).zfill(5)
+
+	# while ticket_id_exists(ticket_id):
+	# 	cursor.execute("SELECT ticket_id FROM ticket ORDER BY booking_date DESC LIMIT 1")
+		
+	# 	last_ticket_id = cursor.fetchone()
+
+	# 	if last_ticket_id is None:
+	# 		last_ticket_id = 0
+	# 	else:
+	# 		last_ticket_id = int(last_ticket_id[0])
+
+	# 	new_ticket_id = last_ticket_id + 1
+	# 	ticket_id = str(new_ticket_id).zfill(5)
+	cursor.close()
 
 	booking_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
@@ -1338,11 +1347,19 @@ def bookFlight():
 			return render_template('successfulBooking.html', ticket_id=ticket_id)
 		elif 'booking_agent' in session:
 			return render_template('bookFlights.html', flight_number=flight_number, ticket_id=ticket_id)
+		elif 'airline_staff' in session:
+			return render_template('login.html', message='Log in to book your tickets!')
 		else:
 			return render_template('login.html', message='Log in to book your tickets!')
 	else:
 		return render_template('login.html', message='Log in to book your tickets!')
 
+def ticket_id_exists(ticket_id):
+		cursor = conn.cursor()
+		cursor.execute("SELECT COUNT(*) FROM ticket WHERE ticket_id = %s", ticket_id)
+		count = cursor.fetchone()[0]
+		cursor.close()
+		return count > 0
 
 @app.route('/bookFlights')
 def bookFlights():
@@ -1739,7 +1756,6 @@ def addBookingAgentRequest():
 		booking_agent_email = request.form['booking_agent_email']
 
 		cursor = conn.cursor()
-		cursor = conn.cursor()
 		sql = "SELECT 1 FROM booking_agent WHERE booking_agent_email = %s LIMIT 1"
 		cursor.execute(sql, (booking_agent_email))
 		result = cursor.fetchone()
@@ -1799,11 +1815,13 @@ def searchCustomerResult():
 		sql = "SELECT c_name FROM customer WHERE cust_email = %s"
 		cursor.execute(sql, (cust_email,))
 		c_name = cursor.fetchone()[0]
+		cursor.close()
 
 		if custNum:
 			cursor = conn.cursor()
 			cursor.execute("SELECT RIGHT(phone_number, 4) FROM customer WHERE cust_email = %s", (cust_email,))
 			result = cursor.fetchone()[0]
+			cursor.close()
 
 			if result == custNum:
 				cursor = conn.cursor()
