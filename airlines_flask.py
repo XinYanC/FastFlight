@@ -104,15 +104,12 @@ def home():
 
 @app.route('/login')
 def login():
-	# Retrieve the logOutSuccess message from the URL query parameters
-    logOutSuccess = request.args.get('logOutSuccess', None)
-    if logOutSuccess:
-        logOutSuccess = "Logged out successfully!"
-        # Render the login.html template with the logOutSuccess message
-        return render_template('login.html', logOutSuccess=logOutSuccess)
-    else:
-        # Render the login.html template without passing logOutSuccess
-        return render_template('login.html')
+	logOutSuccess = request.args.get('logOutSuccess', None)
+	if logOutSuccess:
+		logOutSuccess = "Logged out successfully!"
+		return render_template('login.html', logOutSuccess=logOutSuccess)
+	else:
+		return render_template('login.html')
 
 @app.route('/registrationToggle')
 def registrationToggle():
@@ -132,70 +129,64 @@ def staffRegistration():
 
 @app.route('/customerInterface')
 def customerInterface():
-	cust_name = request.args.get('cust_name', 'again')
-	return render_template('customerInterface.html', cust_name=cust_name)
+	if 'customer' in session:
+		cust_name = request.args.get('cust_name', 'again')
+		return render_template('customerInterface.html', cust_name=cust_name)
+	else:
+		return render_template('login.html', message='Login in to access page.')
 
 @app.route('/bookingAgentInterface')
 def bookingAgentInterface():
-	booking_agent_id = request.args.get('booking_agent_id', 'again')
-	return render_template('bookingAgentInterface.html', booking_agent_id=booking_agent_id)
+	if 'booking_agent' in session:
+		booking_agent_id = request.args.get('booking_agent_id', 'again')
+		return render_template('bookingAgentInterface.html', booking_agent_id=booking_agent_id)
+	return render_template('login.html', message='Login in to access page.')
 
 @app.route('/staffInterface')
 def staffInterface():
-	staff_name = request.args.get('staff_name', 'again')  # Get staff_name from query parameter
-	staff_operator = False
-	if 'operator' in session:
-		staff_operator = True
-	if 'admin' in session:
-		staff_admin = True
+	if 'airline_staff' in session:
+		staff_name = request.args.get('staff_name', 'again') 
+		staff_operator = False
+		staff_admin = False
+		if 'operator' in session:
+			staff_operator = True
+		if 'admin' in session:
+			staff_admin = True
 
-	one_year_ago = datetime.now() - timedelta(days=365)
-	three_months_ago = datetime.now() - timedelta(days=3*30)
-	today = datetime.now()
+		one_year_ago = datetime.now() - timedelta(days=365)
+		three_months_ago = datetime.now() - timedelta(days=3*30)
+		today = datetime.now()
 
-	cursor = conn.cursor()
-	sql = """
-            SELECT a.airport_city, COUNT(*) AS ticket_count
-            FROM ticket t
-            INNER JOIN flight f ON t.flight_num = f.flight_num
-            INNER JOIN airport a ON f.arrival_airport_name = a.airport_name
-            WHERE t.booking_date BETWEEN %s AND %s
-            GROUP BY a.airport_city
-            ORDER BY ticket_count DESC
-            LIMIT 3
-            """
-	cursor.execute(sql, (three_months_ago, today))
-	top_cities_month = cursor.fetchall()
-	cursor.execute(sql, (one_year_ago, today))
-	top_cities_year = cursor.fetchall()
-	cursor.close()
+		cursor = conn.cursor()
+		sql = """
+				SELECT a.airport_city, COUNT(*) AS ticket_count
+				FROM ticket t
+				INNER JOIN flight f ON t.flight_num = f.flight_num
+				INNER JOIN airport a ON f.arrival_airport_name = a.airport_name
+				WHERE t.booking_date BETWEEN %s AND %s
+				GROUP BY a.airport_city
+				ORDER BY ticket_count DESC
+				LIMIT 3
+				"""
+		cursor.execute(sql, (three_months_ago, today))
+		top_cities_month = cursor.fetchall()
+		cursor.execute(sql, (one_year_ago, today))
+		top_cities_year = cursor.fetchall()
+		cursor.close()
 
-	return render_template('staffInterface.html', staff_name=staff_name, staff_operator=staff_operator, staff_admin=staff_admin, top_cities_month=top_cities_month, top_cities_year=top_cities_year)
-
-@app.route('/flightResult')
-def flightResult():
-	return render_template('flightResult.html')
+		return render_template('staffInterface.html', staff_name=staff_name, staff_operator=staff_operator, staff_admin=staff_admin, top_cities_month=top_cities_month, top_cities_year=top_cities_year)
+	else:
+		return render_template('login.html', message='Login in to access page.')
 
 @app.route('/successfulBooking')
 def successfulBooking():
-	return render_template('successfulBooking.html')
+	if 'booking_agent' in session:
+		return render_template('successfulBooking.html')
+	else:
+		return render_template('login.html', message='Login in to access page.')
 
 @app.route('/searchFlights')
 def searchFlights():
-	# flight_sql = """
-	# 				SELECT 
-	# 					airline_name, 
-	# 					flight_num, 
-	# 					TIME_FORMAT(departure_time, '%H:%i') AS formatted_departure_time, 
-	# 					TIME_FORMAT(arrival_time, '%H:%i') AS formatted_arrival_time,  
-	# 					price 
-	# 				FROM 
-	# 					flight 
-	# 				WHERE 
-	# 					flight_status = 'upcoming'
-	# 				ORDER BY 
-	# 					departure_time
-	# 			"""
 	if 'booking_agent' in session:
 		flight_sql = """
 						SELECT 
@@ -255,28 +246,6 @@ def searchFlights():
 							formatted_departure_date, formatted_departure_time;
 					"""
 
-		# flight_sql = """
-		# 				SELECT 
-		# 					f.airline_name, 
-		# 					f.flight_num, 
-		# 					TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
-		# 					TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
-		# 					f.price,
-		# 					DATE(f.departure_time) AS formatted_departure_date
-		# 				FROM 
-		# 					flight f
-		# 				INNER JOIN 
-		# 					airline_staff s ON f.airline_name = s.airline_name
-		# 				INNER JOIN 
-		# 					ticket t ON f.flight_num = t.flight_num
-		# 				WHERE 
-		# 					s.username = %s
-		# 					AND f.departure_time >= %s
-		# 					AND f.departure_time < %s
-		# 					AND f.flight_status = 'upcoming'
-		# 				ORDER BY 
-		# 					formatted_departure_date, formatted_departure_time;
-		# 			"""
 	else:
 		flight_sql = """
 						SELECT 
@@ -305,7 +274,6 @@ def searchFlights():
 					"""
 
 	try:
-		# Execute the SQL query
 		with conn.cursor() as cursor:
 			if 'booking_agent' in session:
 				cursor.execute(flight_sql, session['username'])
@@ -324,7 +292,6 @@ def searchFlights():
 
 @app.route('/stats')
 def stats():
-	# days = request.form['timeRange']
 	if 'booking_agent' in session:
 		now = datetime.now()
 		past_thirty = now - timedelta(days=30)
@@ -393,7 +360,7 @@ def stats():
 							WHERE t.cust_email = %s
 								AND t.booking_date >= %s;
 						""", (session['username'], past_year))
-		total_amount = cursor.fetchall()[0]  # Fetch the total amount
+		total_amount = cursor.fetchall()[0] 
 		cursor.close()
 
 		past_six_months = [now - timedelta(days=30*i) for i in range(1, 7)]
@@ -425,12 +392,11 @@ def stats():
 		monthly_spending = [float(amount) if amount else 0.0 for amount in monthly_spending]
 		monthly_spending.reverse()
 
-		# Convert the lists to JSON format
 		month_labels_json = json.dumps(month_labels)
 		monthly_spending_json = json.dumps(monthly_spending)
 
 		return render_template('stats.html', stats_heading='My Spendings', total_amount=total_amount, now=now, past_year=past_year, monthly_spending=monthly_spending_json, month_labels=month_labels_json, stat_type='cust')
-	return render_template('stats.html')
+	return render_template('login.html', message='Login in to access page.')
 
 @app.route('/companyStats')
 def companyStats():
@@ -438,10 +404,12 @@ def companyStats():
 		now = datetime.now()
 		last_month_date = now - timedelta(days=30)
 		last_year_date = now - timedelta(days=365)
+
 		cursor = conn.cursor()
 		cursor.execute("SELECT airline_name FROM airline_staff WHERE username = %s", (session['username'],))
 		airline_name = cursor.fetchone()[0]
 		cursor.close()
+
 		cursor = conn.cursor()
 		cursor.execute("""
 			SELECT SUM(f.price) 
@@ -452,6 +420,7 @@ def companyStats():
 		""", (airline_name, last_month_date))
 		total_month_sales = cursor.fetchone()[0]
 		cursor.close()
+
 		cursor = conn.cursor()
 		cursor.execute("""
 			SELECT SUM(f.price) 
@@ -491,14 +460,11 @@ def companyStats():
 			cursor.close()
 			return indirect_sales if indirect_sales else 0
 
-		# Calculate revenue from direct sales in the last month
+		
 		direct_sales_last_month = calculate_direct_sales(last_month_date)
-		# Calculate revenue from indirect sales in the last month
 		indirect_sales_last_month = calculate_indirect_sales(last_month_date)
 		last_month = [total_month_sales, direct_sales_last_month,indirect_sales_last_month]
-		# Calculate revenue from direct sales in the last year
 		direct_sales_last_year = calculate_direct_sales(last_year_date)
-		# Calculate revenue from indirect sales in the last year
 		indirect_sales_last_year = calculate_indirect_sales(last_year_date)
 		last_year = [total_year_sales, direct_sales_last_year,indirect_sales_last_year]
 
@@ -524,11 +490,6 @@ def companyStats():
 			monthly_sold.append(amount)
 			cursor.close()
 
-		print(month_labels)
-		print(monthly_sold)
-
-		# monthly_sold.reverse()
-
 		month_labels_json = json.dumps(month_labels)
 		monthly_earning_json = json.dumps(monthly_sold)
 		
@@ -541,7 +502,7 @@ def companyStats():
 								last_year_date=last_year_date,
 								monthly_earning=monthly_earning_json, 
 								month_labels=month_labels_json)
-	return render_template('stats.html')
+	return render_template('login.html', message='Login in to access page.')
 
 @app.route('/companyStatsResults', methods=['GET', 'POST'])
 def companyStatsResults():
@@ -597,13 +558,10 @@ def companyStatsResults():
 			cursor.close()
 			return indirect_sales if indirect_sales else 0
 
-		# Calculate revenue from direct sales in the last month
 		direct_sales_last_month = calculate_direct_sales(from_date, to_date)
-		# Calculate revenue from indirect sales in the last month
 		indirect_sales_last_month = calculate_indirect_sales(from_date, to_date)
 		last_month = [total_month_sales, direct_sales_last_month,indirect_sales_last_month]
 		
-
 		days_between = (to_date - from_date).days 
 		date_range = [to_date - timedelta(days=i) for i in range(days_between)]
 		date_range.reverse()
@@ -629,10 +587,8 @@ def companyStatsResults():
 
 		cursor.close()
 
-		# Convert Decimal objects to floating-point numbers
 		daily_sold = [float(amount) if amount else 0.0 for amount in daily_sold]
 
-		# Convert the lists to JSON format
 		day_labels_json = json.dumps(day_labels)
 		daily_sold_json = json.dumps(daily_sold)
 
@@ -644,7 +600,7 @@ def companyStatsResults():
 								past_month=from_date,
 								monthly_earning=daily_sold_json, 
 								month_labels=day_labels_json)
-	return render_template('stats.html')
+	return render_template('login.html', message='Login in to access page.')
 
 @app.route('/custStatRange', methods=['GET', 'POST'])
 def custStatRange():
@@ -687,7 +643,7 @@ def custStatRange():
 
 		cursor = conn.cursor()
 		for day in date_range:
-			formatted_day = day.strftime("%Y-%m-%d")  # Format the date as 'YYYY-MM-DD'
+			formatted_day = day.strftime("%Y-%m-%d")  
 			cursor.execute("""
 				SELECT SUM(f.price * 0.1) AS commission
 				FROM ticket t
@@ -722,8 +678,6 @@ def custStatRange():
 		months_between = [
 			from_date + relativedelta(months=i) for i in range((to_date.year - from_date.year) * 12 + to_date.month - from_date.month + 1)
 		]
-		# months_between.reverse()  # Reverse the list to have the oldest month first
-
 		month_labels = [month.strftime("%B %Y") for month in months_between]
 
 		monthly_spending = []
@@ -759,114 +713,99 @@ def custStatRange():
 
 		cursor.close()
 
-		# monthly_spending.reverse()
 		monthly_spending = [float(amount) if amount else 0.0 for amount in monthly_spending]
 
-		# Convert the lists to JSON format
 		month_labels_json = json.dumps(month_labels)
 		monthly_spending_json = json.dumps(monthly_spending)
 
 		return render_template('stats.html', stats_heading='My Spendings', total_amount=total_amount, now=to_date, past_year=from_date, monthly_spending=monthly_spending_json, month_labels=month_labels_json, stat_type='cust')
-	return render_template('stats.html')
+	return render_template('login.html', message='Login in to access page.')
 
 @app.route('/viewFlights')
 def viewFlights():
-	current_date = datetime.now().date()
-	end_date = current_date + timedelta(days=30)
-	# flight_sql = """
-	# 				SELECT 
-	# 					airline_name, 
-	# 					flight_num, 
-	# 					TIME_FORMAT(departure_time, '%H:%i') AS formatted_departure_time, 
-	# 					TIME_FORMAT(arrival_time, '%H:%i') AS formatted_arrival_time,  
-	# 					price 
-	# 				FROM 
-	# 					flight 
-	# 				WHERE 
-	# 					flight_status = 'upcoming'
-	# 				ORDER BY 
-	# 					departure_time
-	# 			"""
-	if 'booking_agent' in session:
-		flight_sql = """
-						SELECT 
-							f.airline_name, 
-							f.flight_num, 
-							TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
-							TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
-							f.price,
-							DATE(f.departure_time) AS formatted_departure_date,
-							c.c_name
-						FROM 
-							flight f
-						INNER JOIN 
-							ticket t ON f.flight_num = t.flight_num
-						INNER JOIN 
-							booking_agent b ON t.booking_agent_id = b.booking_agent_id
-						LEFT JOIN 
-							customer c ON t.cust_email = c.cust_email
-						WHERE 
-							b.booking_agent_email = %s
-						ORDER BY 
-							formatted_departure_date, formatted_departure_time;
-					"""
-	elif 'customer' in session:
-		flight_sql = """
-						SELECT 
-							f.airline_name, 
-							f.flight_num, 
-							TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
-							TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
-							f.price,
-							DATE(f.departure_time) AS formatted_departure_date
-						FROM 
-							flight f
-						INNER JOIN 
-							ticket t ON f.flight_num = t.flight_num
-						WHERE 
-							t.cust_email = %s
-						ORDER BY 
-							formatted_departure_date, formatted_departure_time;
-					"""
-	elif 'airline_staff' in session:
-		flight_sql = """
-						SELECT 
-							f.airline_name, 
-							f.flight_num, 
-							TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
-							TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
-							f.price,
-							DATE(f.departure_time) AS formatted_departure_date
-						FROM 
-							flight f
-						INNER JOIN 
-							airline_staff s ON f.airline_name = s.airline_name
-						INNER JOIN 
-							ticket t ON f.flight_num = t.flight_num
-						WHERE 
-							s.username = %s
-							AND f.departure_time >= %s
-							AND f.departure_time < %s
-							AND f.flight_status = 'upcoming'
-						ORDER BY 
-							formatted_departure_date, formatted_departure_time;
-					"""
+	if 'username' in session:
+		current_date = datetime.now().date()
+		end_date = current_date + timedelta(days=30)
+		if 'booking_agent' in session:
+			flight_sql = """
+							SELECT 
+								f.airline_name, 
+								f.flight_num, 
+								TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
+								TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
+								f.price,
+								DATE(f.departure_time) AS formatted_departure_date,
+								c.c_name
+							FROM 
+								flight f
+							INNER JOIN 
+								ticket t ON f.flight_num = t.flight_num
+							INNER JOIN 
+								booking_agent b ON t.booking_agent_id = b.booking_agent_id
+							LEFT JOIN 
+								customer c ON t.cust_email = c.cust_email
+							WHERE 
+								b.booking_agent_email = %s
+							ORDER BY 
+								formatted_departure_date, formatted_departure_time;
+						"""
+		elif 'customer' in session:
+			flight_sql = """
+							SELECT 
+								f.airline_name, 
+								f.flight_num, 
+								TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
+								TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
+								f.price,
+								DATE(f.departure_time) AS formatted_departure_date
+							FROM 
+								flight f
+							INNER JOIN 
+								ticket t ON f.flight_num = t.flight_num
+							WHERE 
+								t.cust_email = %s
+							ORDER BY 
+								formatted_departure_date, formatted_departure_time;
+						"""
+		elif 'airline_staff' in session:
+			flight_sql = """
+							SELECT 
+								f.airline_name, 
+								f.flight_num, 
+								TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
+								TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
+								f.price,
+								DATE(f.departure_time) AS formatted_departure_date
+							FROM 
+								flight f
+							INNER JOIN 
+								airline_staff s ON f.airline_name = s.airline_name
+							INNER JOIN 
+								ticket t ON f.flight_num = t.flight_num
+							WHERE 
+								s.username = %s
+								AND f.departure_time >= %s
+								AND f.departure_time < %s
+								AND f.flight_status = 'upcoming'
+							ORDER BY 
+								formatted_departure_date, formatted_departure_time;
+						"""
 
-	try:
-		# Execute the SQL query
-		with conn.cursor() as cursor:
-			if 'airline_staff' in session: 
-				cursor.execute(flight_sql, (session['username'], current_date, end_date))
-			else:
-				cursor.execute(flight_sql, session['username'])
-			flights = cursor.fetchall()
-			if (flights):
-				return render_template('viewFlights.html', flights_heading='View Upcoming Flights', sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...', datePlaceholder='Select date...', flights=flights, flightDepDate=True)
-			else:
-				return render_template('viewFlights.html', flights_heading='No Upcoming Flights', sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...', datePlaceholder='Select date...')
-	finally:
-        # Close the database connection
-		conn.close()
+		try:
+			with conn.cursor() as cursor:
+				if 'airline_staff' in session: 
+					cursor.execute(flight_sql, (session['username'], current_date, end_date))
+				else:
+					cursor.execute(flight_sql, session['username'])
+				flights = cursor.fetchall()
+				if (flights):
+					return render_template('viewFlights.html', flights_heading='View Upcoming Flights', sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...', datePlaceholder='Select date...', flights=flights, flightDepDate=True)
+				else:
+					return render_template('viewFlights.html', flights_heading='No Upcoming Flights', sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...', datePlaceholder='Select date...')
+		finally:
+			conn.close()
+	else:
+		return render_template('login.html', message='Login in to access page.')
 
 
 #Authenticates the login
@@ -877,10 +816,8 @@ def loginSubmit():
 	password = request.form['login_password']
 	user = request.form.get('user_type')
 
-	# hash the password using MD5
 	hashedPassword = hashlib.md5(password.encode()).hexdigest()
 
-	#cursor used to send queries
 	cursor = conn.cursor()
 
 	data = None
@@ -900,12 +837,6 @@ def loginSubmit():
 		query = "SELECT * FROM airline_staff WHERE username = '{}' and s_password = '{}'"
 		cursor.execute(query.format(username, hashedPassword))
 		data = cursor.fetchone()
-	# #executes query
-	# query = "SELECT * FROM user WHERE username = '{}' and password = '{}'"
-	# cursor.execute(query.format(username, password))
-	# #stores the results in a variable
-	# data = cursor.fetchone()
-	# #use fetchall() if you are expecting more than 1 data row
 	cursor.close()
 
 	cursor = conn.cursor()
@@ -914,10 +845,10 @@ def loginSubmit():
 		cursor.execute(query, (username,))
 		staff_status = cursor.fetchall()
 		for status in staff_status:
-			if status[0] == 'admin':  # Assuming 'admin' is stored as a string in the database
+			if status[0] == 'admin':  
 				session['admin'] = True
 				print('Admin:', session['admin'])
-			if status[0] == 'operator':  # Assuming 'operator' is stored as a string in the database
+			if status[0] == 'operator': 
 				session['operator'] = True
 				print('Operator:', session['operator'])
 	cursor.close()
@@ -925,8 +856,6 @@ def loginSubmit():
 	loginError = None
 
 	if(data):
-		#creates a session for the the user
-		#session is a built in
 		session['username'] = username
 		if (user == "customer"):
 			cursor = conn.cursor()
@@ -956,7 +885,6 @@ def loginSubmit():
 
 			return redirect(url_for('staffInterface', staff_name=first_name))
 	else:
-		#returns an error message to the html page
 		loginError = 'Invalid login or username'
 		return render_template('login.html', loginError=loginError)
 	
@@ -964,7 +892,6 @@ def loginSubmit():
 #Authenticates the register
 @app.route('/customerRegister', methods=['GET', 'POST'])
 def customerRegister():
-	#grabs information from the forms
 	cust_email = request.form['cust_email']
 	cust_fname = request.form['cust_fname']
 	cust_lname = request.form['cust_lname']
@@ -982,17 +909,12 @@ def customerRegister():
 
 	hashedPassword = hashlib.md5(cust_password.encode()).hexdigest()
 
-	#cursor used to send queries
 	cursor = conn.cursor()
-	#executes query
 	query = "SELECT * FROM customer WHERE cust_email = '{}'"
 	cursor.execute(query.format(cust_email))
-	#stores the results in a variable
 	data = cursor.fetchone()
-	#use fetchall() if you are expecting more than 1 data row
 	registrationError = None
 	if(data):
-		#If the previous query returns data, then user exists
 		registrationError = "This user already exists"
 		return render_template('customerRegistration.html', registrationError = registrationError)
 	else:
@@ -1005,24 +927,19 @@ def customerRegister():
 
 @app.route('/bookingAgentRegister', methods=['GET', 'POST'])
 def bookingAgentRegister():
-	#grabs information from the forms
 	bagent_email = request.form['bagent_email']
 	bagent_password = request.form['bagent_password']
 	bagent_id = request.form['bagent_id']
 
 	hashedPassword = hashlib.md5(bagent_password.encode()).hexdigest()
 
-	#cursor used to send queries
 	cursor = conn.cursor()
-	#executes query
 	query = "SELECT * FROM booking_agent WHERE booking_agent_email = '{}'"
 	cursor.execute(query.format(bagent_email))
-	#stores the results in a variable
 	data = cursor.fetchone()
-	#use fetchall() if you are expecting more than 1 data row
 	registrationError = None
+
 	if(data):
-		#If the previous query returns data, then user exists
 		registrationError = "This user already exists"
 		return render_template('bookingAgentRegistration.html', registrationError = registrationError)
 	else:
@@ -1035,7 +952,6 @@ def bookingAgentRegister():
 
 @app.route('/staffRegister', methods=['GET', 'POST'])
 def staffRegister():
-	#grabs information from the forms
 	staff_user = request.form['staff_user']
 	staff_password = request.form['staff_password']
 	staff_fname = request.form['staff_fname']
@@ -1045,17 +961,13 @@ def staffRegister():
 
 	hashedPassword = hashlib.md5(staff_password.encode()).hexdigest()
 
-	#cursor used to send queries
 	cursor = conn.cursor()
-	#executes query
 	query = "SELECT * FROM airline_staff WHERE username = '{}'"
 	cursor.execute(query.format(staff_user))
-	#stores the results in a variable
 	data = cursor.fetchone()
-	#use fetchall() if you are expecting more than 1 data row
 	registrationError = None
+
 	if(data):
-		#If the previous query returns data, then user exists
 		registrationError = "This user already exists"
 		return render_template('staffRegistration.html', registrationError = registrationError)
 	else:
@@ -1070,12 +982,10 @@ def staffRegister():
 def logout():
     # Clear the session
     session.clear()
-    # Redirect to the login page with the success message
     return redirect('/login?logOutSuccess=Logged out successfully!')
 
 @app.route('/get_airport_suggestions', methods=['POST'])
-def get_airport_suggestions():
-    print("Function get_airport_suggestions() called")  # Add this line for debugging
+def get_airport_suggestions(): 
     search_query = request.form['searchQuery']
     suggestions = []
 
@@ -1096,24 +1006,6 @@ def searchFlightsResults():
 	destination_search = request.form['destinationSearch'].upper()  
 	search_date = request.form['searchDate']
 
-	print("Source Search:", source_search)
-	print("Destination Search:", destination_search)
-	print("Search Date:", search_date)
-
-	# Function to search for airport by multi-word city names
-	# def search_airport(search_term):
-	#     words = search_term.split()  # Split input into words
-	#     airport_names = []
-	#     # Search for each word individually
-	#     with conn.cursor() as airport_cursor:
-	#         for word in words:
-	#             airport_sql = "SELECT airport_name FROM airport WHERE UPPER(airport_name) LIKE %s OR UPPER(airport_city) LIKE %s"
-	#             airport_cursor.execute(airport_sql, ('%' + word.upper() + '%', '%' + word.upper() + '%'))
-	#             result = airport_cursor.fetchone()
-	#             if result:
-	#                 airport_names.append(result[0])
-	#     return airport_names
-
 	def search_airport(search_term):
 		with conn.cursor() as airport_cursor:
 			airport_sql = "SELECT airport_name FROM airport WHERE UPPER(airport_city) = %s"
@@ -1123,44 +1015,18 @@ def searchFlightsResults():
 			print("Airports in", search_term, ":", airports)
 			return airports
 
-	# source_airports = search_airport(source_search)
-	# destination_airports = search_airport(destination_search)
-
-	# If source_search is not a city, set source_airports to source_search
 	if not search_airport(source_search):
 		source_airports = [source_search]
 	else:
 		source_airports = search_airport(source_search)
 
-	# If destination_search is not a city, set destination_airports to destination_search
 	if not search_airport(destination_search):
 		destination_airports = [destination_search]
 	else:
 		destination_airports = search_airport(destination_search)
 
-
 	if source_airports and destination_airports:
-		# Execute SQL query to find flights
 		with conn.cursor() as flight_cursor:
-			# flight_sql = "SELECT airline_name, flight_num, TIME(departure_time), TIME(arrival_time), price FROM flight WHERE UPPER(depart_airport_name) IN %s AND UPPER(arrival_airport_name) IN %s AND DATE(departure_time) = %s AND flight_status = 'upcoming'"
-			# flight_sql="""
-			# 				SELECT 
-			# 					airline_name, 
-			# 					flight_num, 
-			# 					TIME_FORMAT(departure_time, '%%H:%%i') AS formatted_departure_time, 
-			# 					TIME_FORMAT(arrival_time, '%%H:%%i') AS formatted_arrival_time, 
-			# 					price 
-			# 				FROM 
-			# 					flight 
-			# 				WHERE 
-			# 					UPPER(depart_airport_name) IN %s 
-			# 					AND UPPER(arrival_airport_name) IN %s 
-			# 					AND DATE(departure_time) = %s 
-			# 					AND flight_status = 'upcoming'
-			# 				ORDER BY 
-			# 					price
-			# 				"""
-			
 			if 'booking_agent' in session:
 				flight_sql = """
 								SELECT 
@@ -1259,8 +1125,6 @@ def searchFlightsResults():
 				flight_cursor.execute(flight_sql, (tuple(source_airports), tuple(destination_airports), search_date))
 			flights = flight_cursor.fetchall()
 
-		print("Flights:", flights)
-
 		if flights:
 			return render_template('searchFlights.html', sourcePlaceholder=source_search, destPlaceholder=destination_search, datePlaceholder=search_date, flights_heading='TO '+destination_search, flights=flights)
 		else:
@@ -1270,170 +1134,159 @@ def searchFlightsResults():
 
 @app.route('/viewFlightsResults', methods=['GET', 'POST'])
 def viewFlightsResults():
-	source_search = request.form.get('sourceSearch', '').upper()
-	destination_search = request.form.get('destinationSearch', '').upper()
-	search_from_date = request.form.get('searchFromDate', '')
-	search_to_date = request.form.get('searchToDate', '')
+	if 'username' in session:
+		source_search = request.form.get('sourceSearch', '').upper()
+		destination_search = request.form.get('destinationSearch', '').upper()
+		search_from_date = request.form.get('searchFromDate', '')
+		search_to_date = request.form.get('searchToDate', '')
 
-	def search_airport(search_term):
-		with conn.cursor() as airport_cursor:
-			airport_sql = "SELECT airport_name FROM airport WHERE UPPER(airport_city) = %s"
-			airport_cursor.execute(airport_sql, search_term)
-			results = airport_cursor.fetchall()
-			airports = [result[0] if isinstance(result, tuple) else result['airport_name'] for result in results]
-			print("Airports in", search_term, ":", airports)
-			return airports
+		def search_airport(search_term):
+			with conn.cursor() as airport_cursor:
+				airport_sql = "SELECT airport_name FROM airport WHERE UPPER(airport_city) = %s"
+				airport_cursor.execute(airport_sql, search_term)
+				results = airport_cursor.fetchall()
+				airports = [result[0] if isinstance(result, tuple) else result['airport_name'] for result in results]
+				print("Airports in", search_term, ":", airports)
+				return airports
 
-	# If source_search is not a city, set source_airports to source_search
-	source_airports = search_airport(source_search)
-	if not source_airports:
-		source_airports = [source_search]
+		# If source_search is not a city, set source_airports to source_search
+		source_airports = search_airport(source_search)
+		if not source_airports:
+			source_airports = [source_search]
 
-	# If destination_search is not a city, set destination_airports to destination_search
-	destination_airports = search_airport(destination_search)
-	if not destination_airports:
-		destination_airports = [destination_search]
+		# If destination_search is not a city, set destination_airports to destination_search
+		destination_airports = search_airport(destination_search)
+		if not destination_airports:
+			destination_airports = [destination_search]
 
 
-	aCust = False
-	aStaff = False
-	if source_airports and destination_airports:
-		# Execute SQL query to find flights
-		with conn.cursor() as flight_cursor:
-			if 'booking_agent' in session:
-				flight_sql = """
-								SELECT 
-									f.airline_name, 
-									f.flight_num, 
-									TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
-									TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
-									f.price,
-									DATE(f.departure_time) AS formatted_departure_date,
-									c.c_name
-								FROM 
-									flight f
-								INNER JOIN 
-									ticket t ON f.flight_num = t.flight_num
-								INNER JOIN 
-									booking_agent b ON t.booking_agent_id = b.booking_agent_id
-								LEFT JOIN 
-									customer c ON t.cust_email = c.cust_email
-								WHERE 
-									UPPER(depart_airport_name) IN %s 
-									AND UPPER(arrival_airport_name) IN %s 
-									AND DATE(departure_time) BETWEEN %s AND %s
-									AND b.booking_agent_email = %s
-								ORDER BY 
-									formatted_departure_date, formatted_departure_time;
-							"""
-			elif 'customer' in session:
-				flight_sql = """
-								SELECT 
-									f.airline_name, 
-									f.flight_num, 
-									TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
-									TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
-									f.price,
-									DATE(f.departure_time) AS formatted_departure_date
-								FROM 
-									flight f
-								INNER JOIN 
-									ticket t ON f.flight_num = t.flight_num
-								WHERE 
-									UPPER(depart_airport_name) IN %s 
-									AND UPPER(arrival_airport_name) IN %s 
-									AND DATE(departure_time) BETWEEN %s AND %s
-									AND t.cust_email = %s
-								ORDER BY 
-									formatted_departure_date, formatted_departure_time;
-							"""
-				aCust = True
-			elif 'airline_staff' in session:
-				flight_sql = """
-								SELECT 
-									f.airline_name, 
-									f.flight_num, 
-									TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
-									TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
-									f.price,
-									DATE(f.departure_time) AS formatted_departure_date
-								FROM 
-									flight f
-								INNER JOIN 
-									airplane a ON f.airplane_id = a.airplane_id
-								INNER JOIN
-									airline_staff astaff ON f.airline_name = astaff.airline_name
-								WHERE 
-									UPPER(depart_airport_name) IN %s 
-									AND UPPER(arrival_airport_name) IN %s 
-									AND DATE(departure_time) BETWEEN %s AND %s
-									AND astaff.username = %s
-								ORDER BY 
-									formatted_departure_date, formatted_departure_time;
-							"""
-				aStaff = True
-			flight_cursor.execute(flight_sql, (tuple(source_airports), tuple(destination_airports), search_from_date, search_to_date, session['username']))
-			flights = flight_cursor.fetchall()
+		aCust = False
+		aStaff = False
+		if source_airports and destination_airports:
+			# Execute SQL query to find flights
+			with conn.cursor() as flight_cursor:
+				if 'booking_agent' in session:
+					flight_sql = """
+									SELECT 
+										f.airline_name, 
+										f.flight_num, 
+										TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
+										TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
+										f.price,
+										DATE(f.departure_time) AS formatted_departure_date,
+										c.c_name
+									FROM 
+										flight f
+									INNER JOIN 
+										ticket t ON f.flight_num = t.flight_num
+									INNER JOIN 
+										booking_agent b ON t.booking_agent_id = b.booking_agent_id
+									LEFT JOIN 
+										customer c ON t.cust_email = c.cust_email
+									WHERE 
+										UPPER(depart_airport_name) IN %s 
+										AND UPPER(arrival_airport_name) IN %s 
+										AND DATE(departure_time) BETWEEN %s AND %s
+										AND b.booking_agent_email = %s
+									ORDER BY 
+										formatted_departure_date, formatted_departure_time;
+								"""
+				elif 'customer' in session:
+					flight_sql = """
+									SELECT 
+										f.airline_name, 
+										f.flight_num, 
+										TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
+										TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
+										f.price,
+										DATE(f.departure_time) AS formatted_departure_date
+									FROM 
+										flight f
+									INNER JOIN 
+										ticket t ON f.flight_num = t.flight_num
+									WHERE 
+										UPPER(depart_airport_name) IN %s 
+										AND UPPER(arrival_airport_name) IN %s 
+										AND DATE(departure_time) BETWEEN %s AND %s
+										AND t.cust_email = %s
+									ORDER BY 
+										formatted_departure_date, formatted_departure_time;
+								"""
+					aCust = True
+				elif 'airline_staff' in session:
+					flight_sql = """
+									SELECT 
+										f.airline_name, 
+										f.flight_num, 
+										TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
+										TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
+										f.price,
+										DATE(f.departure_time) AS formatted_departure_date
+									FROM 
+										flight f
+									INNER JOIN 
+										airplane a ON f.airplane_id = a.airplane_id
+									INNER JOIN
+										airline_staff astaff ON f.airline_name = astaff.airline_name
+									WHERE 
+										UPPER(depart_airport_name) IN %s 
+										AND UPPER(arrival_airport_name) IN %s 
+										AND DATE(departure_time) BETWEEN %s AND %s
+										AND astaff.username = %s
+									ORDER BY 
+										formatted_departure_date, formatted_departure_time;
+								"""
+					aStaff = True
+				flight_cursor.execute(flight_sql, (tuple(source_airports), tuple(destination_airports), search_from_date, search_to_date, session['username']))
+				flights = flight_cursor.fetchall()
 
-		print("Flights:", flights)
+			print("Flights:", flights)
 
-		if flights:
-			return render_template('viewFlights.html', sourcePlaceholder=source_search, destPlaceholder=destination_search, flights_heading='TICKETS TO '+destination_search, flights=flights, aCust=aCust, aStaff=aStaff)
+			if flights:
+				return render_template('viewFlights.html', sourcePlaceholder=source_search, destPlaceholder=destination_search, flights_heading='TICKETS TO '+destination_search, flights=flights, aCust=aCust, aStaff=aStaff)
+			else:
+				return render_template('viewFlights.html', sourcePlaceholder=source_search, destPlaceholder=destination_search, flights_heading='TICKETS TO '+destination_search, message="No results found.")
 		else:
-			return render_template('viewFlights.html', sourcePlaceholder=source_search, destPlaceholder=destination_search, flights_heading='TICKETS TO '+destination_search, message="No results found.")
+			return render_template('viewFlights.html', flights_heading='Error', message="Source or destination not found.")
 	else:
-		return render_template('viewFlights.html', flights_heading='Error', message="Source or destination not found.")
-
+		return render_template('login.html', message='Login in to access page.')
 
 @app.route('/bookFlight', methods=['POST'])
 def bookFlight():
-    # Define the generate_ticket_id function
 	def generate_ticket_id():
-		# Retrieve the last ticket ID based on the booking_date from the database
 		cursor = conn.cursor()
 		cursor.execute("SELECT ticket_id FROM ticket ORDER BY booking_date DESC LIMIT 1")
 		last_ticket_id = cursor.fetchone()
 
-		# If no ticket ID exists, set it to 0
 		if last_ticket_id is None:
 			last_ticket_id = 0
 		else:
 			last_ticket_id = int(last_ticket_id[0])
 
-		# Generate a new ticket ID by incrementing the last ticket ID
 		new_ticket_id = last_ticket_id + 1
 
-		# Pad the ticket ID with leading zeros to ensure it's 5 digits long
 		return str(new_ticket_id).zfill(5)
 
-	# Define the ticket_id_exists function
 	def ticket_id_exists(ticket_id):
-		# Check if the ticket ID already exists in the database
 		cursor = conn.cursor()
 		cursor.execute("SELECT COUNT(*) FROM ticket WHERE ticket_id = %s", ticket_id)
 		count = cursor.fetchone()[0]
 		cursor.close()
 		return count > 0
 
-	# Retrieve form data
 	flight_number = request.form['flight_number']
-
-	# Generate a unique ticket ID
 	ticket_id = generate_ticket_id()
 
-	# Check if the ticket ID already exists and generate a new one if necessary
 	while ticket_id_exists(ticket_id):
 		ticket_id = generate_ticket_id()
 
-	# Get the current time for booking_date
 	booking_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 	if 'username' in session:
 		if 'customer' in session:
 			cust_email = session['username']
-			booking_agent_id = None  # For customers, booking_agent_id is null
+			booking_agent_id = None  
 
-			# Insert the ticket into the database
 			cursor = conn.cursor()
 			cursor.execute("INSERT INTO ticket (ticket_id, flight_num, cust_email, booking_agent_id, booking_date) VALUES (%s, %s, %s, %s, %s)",
 							(ticket_id, flight_number, cust_email, booking_agent_id, booking_date))
@@ -1444,61 +1297,66 @@ def bookFlight():
 		elif 'booking_agent' in session:
 			return render_template('bookFlights.html', flight_number=flight_number, ticket_id=ticket_id)
 		else:
-			return render_template('login.html', registerSuccess='Log in to book your tickets!')
+			return render_template('login.html', message='Log in to book your tickets!')
 	else:
-		return render_template('login.html', registerSuccess='Log in to book your tickets!')
+		return render_template('login.html', message='Log in to book your tickets!')
 
 
 @app.route('/bookFlights')
 def bookFlights():
-    # Retrieve ticket_id and flight_number from query parameters
-    ticket_id = request.args.get('ticket_id')
-    flight_number = request.args.get('flight_number')
+	if 'booking_agent' in session:
+		ticket_id = request.args.get('ticket_id')
+		flight_number = request.args.get('flight_number')
 
-    # Pass ticket_id and flight_number to the template
-    return render_template('bookFlights.html', ticket_id=ticket_id, flight_number=flight_number)
+		return render_template('bookFlights.html', ticket_id=ticket_id, flight_number=flight_number)
+	else:
+		return render_template('login.html', message='Login in to access page.')
 
 @app.route('/showCustomer', methods=['GET', 'POST'])
 def showCustomer():
-    if request.method == 'POST':
-        # Retrieve flight_number from the request form
-        flight_number = request.form.get('flight_number')
+	if 'airline_staff' in session:
+		if request.method == 'POST':
+			flight_number = request.form.get('flight_number')
 
-        if flight_number:
-            cursor = conn.cursor()
-            cursor.execute("SELECT c.c_name FROM customer c INNER JOIN ticket t ON c.cust_email = t.cust_email WHERE t.flight_num = %s;", (flight_number,))
-            customers = cursor.fetchall()
-            cursor.close()
+			if flight_number:
+				cursor = conn.cursor()
+				cursor.execute("SELECT c.c_name FROM customer c INNER JOIN ticket t ON c.cust_email = t.cust_email WHERE t.flight_num = %s;", (flight_number,))
+				customers = cursor.fetchall()
+				cursor.close()
 
-            if customers:
-                return render_template('showCustomer.html', customers=customers, flight_number=flight_number)
-            else:
-                return render_template('showCustomer.html', message='No customers on flight found.', flight_number=flight_number)
-        else:
-            return render_template('showCustomer.html', message='Flight number not provided.')
-    else:
-        # Handle GET request
-        return render_template('showCustomer.html', message='')  # Render the form initially
+				if customers:
+					return render_template('showCustomer.html', customers=customers, flight_number=flight_number)
+				else:
+					return render_template('showCustomer.html', message='No customers on flight found.', flight_number=flight_number)
+			else:
+				return render_template('showCustomer.html', message='Flight number not provided.')
+		else:
+			return render_template('showCustomer.html', message='*Flight number not provided.') 
+	else:
+		return render_template('login.html', message='Login in to access page.')
 
 @app.route('/inputCustInfo', methods=['GET', 'POST'])
 def inputCustInfo():
-	cust_email = request.form['cust_email']
-	flight_number = request.form['flight_number']
-	ticket_id = request.form['ticket_id']
-	booking_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+	if 'booking_agent' in session:
+		cust_email = request.form['cust_email']
+		flight_number = request.form['flight_number']
+		ticket_id = request.form['ticket_id']
+		booking_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-	cursor = conn.cursor()
-	cursor.execute("SELECT booking_agent_id FROM booking_agent WHERE booking_agent_email = %s", session['username'])
-	booking_agent_id = cursor.fetchone()[0]
-	cursor.close()
+		cursor = conn.cursor()
+		cursor.execute("SELECT booking_agent_id FROM booking_agent WHERE booking_agent_email = %s", session['username'])
+		booking_agent_id = cursor.fetchone()[0]
+		cursor.close()
 
-	cursor = conn.cursor()
-	cursor.execute("INSERT INTO ticket (ticket_id, flight_num, cust_email, booking_agent_id, booking_date) VALUES (%s, %s, %s, %s, %s)",
-					(ticket_id, flight_number, cust_email, booking_agent_id, booking_date))
-	conn.commit()
-	cursor.close()
+		cursor = conn.cursor()
+		cursor.execute("INSERT INTO ticket (ticket_id, flight_num, cust_email, booking_agent_id, booking_date) VALUES (%s, %s, %s, %s, %s)",
+						(ticket_id, flight_number, cust_email, booking_agent_id, booking_date))
+		conn.commit()
+		cursor.close()
 
-	return render_template('successfulBooking.html', ticket_id=ticket_id)
+		return render_template('successfulBooking.html', ticket_id=ticket_id)
+	else:
+		return render_template('login.html', message='Login in to access page.')
 
 @app.route('/awards')
 def awards():
@@ -1599,7 +1457,8 @@ def awards():
 		cursor.close()
 
 		return render_template('awards.html', awards_heading='Top '+ airline_name +' Booking Agents', top_agents_month=top_agents_month, top_agents_year=top_agents_year, top_agents_commission=top_agents_commission, award_type='st', card='shortcard')
-	return render_template('index.html') 
+	else:
+		return render_template('login.html', message='Login in to access page.')
 
 @app.route('/createFlight')
 def createFlight():
@@ -1609,8 +1468,8 @@ def createFlight():
 		cursor.execute(query)
 		result = cursor.fetchone()
 
-		if result and result[0] is not None:  # Check if result is not empty and the flight number is not None
-			max_flight_num = int(result[0])  # Extract the flight number from the result tuple and convert it to an integer
+		if result and result[0] is not None:  
+			max_flight_num = int(result[0])  
 			new_flight_num = max_flight_num + 1
 		else:
 			new_flight_num = 1
@@ -1636,244 +1495,306 @@ def createFlight():
 
 		return render_template('createFlight.html', flight_num=new_flight_num, airline_name=airline_name, airport_names=airport_names, airplane_id=airplane_id)
 	else:
-		return render_template('viewFlights.html')
+		return render_template('viewFlights.html', flights_heading='No Upcoming Flights')
 	
 @app.route('/inputFlightInfo', methods=['GET', 'POST'])
 def inputFlightInfo():
-	# flight_num = request.args.get('flight_num')
-	# print('showwwwwww',flight_num)
-	# airline_name = request.args.get('airline_name')
-	# flight_num = request.form['flight_num']
-	flight_num = request.form.get('flight_num')
-	airline_name = request.form.get('airline_name')
-	# airline_name = request.form['airline_name']
-	depart_airport_name = request.form['depart_airport_name']
-	arrival_airport_name = request.form['arrival_airport_name']
-	departure_time = request.form['departure_time']
-	arrival_time = request.form['arrival_time']
-	price = request.form['price']
-	flight_status = 'upcoming'
-	airplane_id = request.form['airplane_id']
+	if 'admin' in session:
+		flight_num = request.form.get('flight_num')
+		airline_name = request.form.get('airline_name')
+		depart_airport_name = request.form['depart_airport_name']
+		arrival_airport_name = request.form['arrival_airport_name']
+		departure_time = request.form['departure_time']
+		arrival_time = request.form['arrival_time']
+		price = request.form['price']
+		flight_status = 'upcoming'
+		airplane_id = request.form['airplane_id']
 
+		cursor = conn.cursor()
+		cursor.execute("INSERT INTO flight VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+						(flight_num, airline_name, arrival_airport_name, depart_airport_name, departure_time, arrival_time, price, flight_status, airplane_id))
+		conn.commit()
+		cursor.close()
 
-	cursor = conn.cursor()
-	cursor.execute("INSERT INTO flight VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
-					(flight_num, airline_name, arrival_airport_name, depart_airport_name, departure_time, arrival_time, price, flight_status, airplane_id))
-	conn.commit()
-	cursor.close()
-
-	return render_template('viewFlights.html', successfulAdd='Successfully Added Flight!', sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...')
+		return render_template('viewFlights.html', successfulAdd='Successfully Added Flight!', sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...')
+	else:
+		return render_template('login.html', message='Login in to access page.')
 
 @app.route('/changeFlightStatus', methods=['GET', 'POST'])
 def changeFlightStatus():
-	cursor = conn.cursor()
-	cursor.execute("SELECT airline_name FROM airline_staff WHERE username = %s", (session['username'],))
-	airline_name = cursor.fetchone()[0]
-	cursor.close()
+	if 'operator' in session:
+		cursor = conn.cursor()
+		cursor.execute("SELECT airline_name FROM airline_staff WHERE username = %s", (session['username'],))
+		airline_name = cursor.fetchone()[0]
+		cursor.close()
 
-	cursor = conn.cursor()
-	cursor.execute("SELECT flight_num FROM flight WHERE airline_name =%s ORDER BY flight_num", airline_name)
-	flight_num = [row[0] for row in cursor.fetchall()]
-	cursor.close()
+		cursor = conn.cursor()
+		cursor.execute("SELECT flight_num FROM flight WHERE airline_name =%s ORDER BY flight_num", airline_name)
+		flight_num = [row[0] for row in cursor.fetchall()]
+		cursor.close()
 
-	return render_template('changeFlightStatus.html', flight_num=flight_num)
+		return render_template('changeFlightStatus.html', flight_num=flight_num)
+	else:
+		return render_template('login.html', message='Login in to access page.')
 
 @app.route('/changeFlightStatusRequest', methods=['GET', 'POST'])
 def changeFlightStatusRequest():
-	flight_num = request.form.get('flight_num')
-	flight_status = request.form['flight_status']
+	if 'operator' in session:
+		flight_num = request.form.get('flight_num')
+		flight_status = request.form['flight_status']
 
-	cursor = conn.cursor()
-	cursor.execute("UPDATE flight SET flight_status = %s WHERE flight_num = %s", (flight_status, flight_num))
-	conn.commit()
-	cursor.close()
+		cursor = conn.cursor()
+		cursor.execute("UPDATE flight SET flight_status = %s WHERE flight_num = %s", (flight_status, flight_num))
+		conn.commit()
+		cursor.close()
 
-	return render_template('viewFlights.html', successfulAdd='Successfully Updated Flight!', sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...')
+		return render_template('viewFlights.html', successfulAdd='Successfully Updated Flight!', sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...')
+	else:
+		return render_template('login.html', message='Login in to access page.')
 
 @app.route('/addAirplane', methods=['GET', 'POST'])
 def addAirplane():
-    cursor = conn.cursor()
-    cursor.execute("SELECT airline_name FROM airline_staff WHERE username = %s", (session['username'],))
-    airline_name = cursor.fetchone()[0]
-    cursor.close()
+	if 'admin' in session:
+		cursor = conn.cursor()
+		cursor.execute("SELECT airline_name FROM airline_staff WHERE username = %s", (session['username'],))
+		airline_name = cursor.fetchone()[0]
+		cursor.close()
 
-    cursor = conn.cursor()
-    cursor.execute("SELECT MAX(CAST(SUBSTRING(airplane_id, 3) AS UNSIGNED)) AS max_number FROM airplane WHERE airline_name = %s", (airline_name,))
-    result = cursor.fetchone()
-    cursor.close()
+		cursor = conn.cursor()
+		cursor.execute("SELECT MAX(CAST(SUBSTRING(airplane_id, 3) AS UNSIGNED)) AS max_number FROM airplane WHERE airline_name = %s", (airline_name,))
+		result = cursor.fetchone()
+		cursor.close()
 
-    if result and result[0] is not None:
-        max_number = result[0]
-        next_number = max_number + 1
-    else:
-        next_number = 0
+		if result and result[0] is not None:
+			max_number = result[0]
+			next_number = max_number + 1
+		else:
+			next_number = 0
 
-    abbreviation = ''.join(word[0] for word in airline_name.split()).upper()
-    # Generate the airplane_id with a maximum length of 5 characters
-    airplane_id = f"{abbreviation}{next_number:03d}"[:5]
+		abbreviation = ''.join(word[0] for word in airline_name.split()).upper()
+		# Generate the airplane_id with a maximum length of 5 characters
+		airplane_id = f"{abbreviation}{next_number:03d}"[:5]
 
-    return render_template('addAirplane.html', airline_name=airline_name, airplane_id=airplane_id)
+		return render_template('addAirplane.html', airline_name=airline_name, airplane_id=airplane_id)
+	else:
+		return render_template('login.html', message='Login in to access page.')
 
 @app.route('/addAirplaneRequest', methods=['GET', 'POST'])
 def addAirplaneRequest():
-	airline_name = request.form.get('airline_name')
-	airplane_id = request.form.get('airplane_id')[:5]
-	total_seats = request.form['total_seats']
+	if 'admin' in session:
+		airline_name = request.form.get('airline_name')
+		airplane_id = request.form.get('airplane_id')[:5]
+		total_seats = request.form['total_seats']
 
-	cursor = conn.cursor()
-	cursor.execute("INSERT INTO airplane VALUES (%s, %s, %s)",
-					(airplane_id, airline_name, total_seats))
-	conn.commit()
-	cursor.close()
+		cursor = conn.cursor()
+		cursor.execute("INSERT INTO airplane VALUES (%s, %s, %s)",
+						(airplane_id, airline_name, total_seats))
+		conn.commit()
+		cursor.close()
 
-	cursor = conn.cursor()
-	cursor.execute("SELECT airplane_id, total_seats FROM airplane WHERE airline_name = %s;", (airline_name,))
-	airplanes = cursor.fetchall()
-	cursor.close()
+		cursor = conn.cursor()
+		cursor.execute("SELECT airplane_id, total_seats FROM airplane WHERE airline_name = %s;", (airline_name,))
+		airplanes = cursor.fetchall()
+		cursor.close()
 
-	return render_template('showAirplane.html', successfulAdd='Successfully Added Airplane No.'+airplane_id, airline_name=airline_name, airplanes=airplanes)
-
+		return render_template('showAirplane.html', successfulAdd='Successfully Added Airplane No.'+airplane_id, airline_name=airline_name, airplanes=airplanes)
+	else:
+		return render_template('login.html', message='Login in to access page.')
 
 @app.route('/showAirplane', methods=['GET', 'POST'])
 def showAirplane():
-	cursor = conn.cursor()
-	cursor.execute("SELECT airline_name FROM airline_staff WHERE username = %s", (session['username'],))
-	airline_name = cursor.fetchone()[0]
-	cursor.close()
+	if 'admin' in session:
+		cursor = conn.cursor()
+		cursor.execute("SELECT airline_name FROM airline_staff WHERE username = %s", (session['username'],))
+		airline_name = cursor.fetchone()[0]
+		cursor.close()
 
-	cursor = conn.cursor()
-	cursor.execute("SELECT airplane_id, total_seats FROM airplane WHERE airline_name = %s;", (airline_name,))
-	airplanes = cursor.fetchall()
-	cursor.close()
+		cursor = conn.cursor()
+		cursor.execute("SELECT airplane_id, total_seats FROM airplane WHERE airline_name = %s;", (airline_name,))
+		airplanes = cursor.fetchall()
+		cursor.close()
 
-	if airplanes:
-		return render_template('showCustomer.html', airline_name=airline_name, airplanes=airplanes)
+		if airplanes:
+			return render_template('showCustomer.html', airline_name=airline_name, airplanes=airplanes)
+		else:
+			return render_template('showCustomer.html', message='No customers on flight found.')
 	else:
-		return render_template('showCustomer.html', message='No customers on flight found.')
-	
+		return render_template('login.html', message='Login in to access page.')
+
 @app.route('/addAirport')
 def addAirport():
-	return render_template('addAirport.html')
+	if 'admin' in session:
+		return render_template('addAirport.html')
+	else:
+		return render_template('login.html', message='Login in to access page.')
 
 @app.route('/addAirportRequest', methods=['GET', 'POST'])
 def addAirportRequest():
-	airport_name = request.form['airport_name']
-	airport_city = request.form['airport_city'].upper()
+	if 'admin' in session:
+		airport_name = request.form['airport_name']
+		airport_city = request.form['airport_city'].upper()
 
-	cursor = conn.cursor()
-	cursor.execute("INSERT INTO airport VALUES (%s, %s)",
-					(airport_name, airport_city))
-	conn.commit()
-	cursor.close()
+		cursor = conn.cursor()
+		cursor.execute("INSERT INTO airport VALUES (%s, %s)",
+						(airport_name, airport_city))
+		conn.commit()
+		cursor.close()
 
-	return render_template('searchFlights.html', successfulAdd='Successfully Added Airport ' + airport_name + ' From ' + airport_city, sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...')
+		return render_template('searchFlights.html', successfulAdd='Successfully Added Airport ' + airport_name + ' From ' + airport_city, sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...')
+	else:
+		return render_template('login.html', message='Login in to access page.')
 
 @app.route('/addPermission', methods=['GET', 'POST'])
 def addPermission():
-    return render_template('addPermission.html')
+	if 'admin' in session:
+		return render_template('addPermission.html')
+	else:
+		return render_template('login.html', message='Login in to access page.')
 
 @app.route('/addPermissionRequest', methods=['GET', 'POST'])
 def addPermissionRequest():
-	username = request.form['username']
-	permission = request.form['permission']
+	if 'admin' in session:
+		username = request.form['username']
+		permission = request.form['permission']
 
-	cursor = conn.cursor()
-	cursor.execute("SELECT airline_name FROM airline_staff WHERE username = %s", (session['username'],))
-	airline_name = cursor.fetchone()[0]
-	cursor.close()
-
-	cursor = conn.cursor()
-	sql = "SELECT 1 FROM airline_staff WHERE username = %s AND airline_name = %s LIMIT 1"
-	cursor.execute(sql, (username, airline_name))
-	result = cursor.fetchone()
-	
-	if result:
-		cursor.execute("INSERT INTO permission VALUES (%s, %s)",
-						(username, permission))
-		conn.commit()
+		cursor = conn.cursor()
+		cursor.execute("SELECT airline_name FROM airline_staff WHERE username = %s", (session['username'],))
+		airline_name = cursor.fetchone()[0]
 		cursor.close()
-		return render_template('searchFlights.html', successfulAdd='Successfully Granted ' + username + ' ' + permission + ' Permission', sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...')
+
+		cursor = conn.cursor()
+		sql = "SELECT 1 FROM airline_staff WHERE username = %s AND airline_name = %s LIMIT 1"
+		cursor.execute(sql, (username, airline_name))
+		result = cursor.fetchone()
+		
+		if result:
+			cursor.execute("INSERT INTO permission VALUES (%s, %s)",
+							(username, permission))
+			conn.commit()
+			cursor.close()
+			return render_template('searchFlights.html', successfulAdd='Successfully Granted ' + username + ' ' + permission + ' Permission', sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...')
+		else:
+			cursor.close()
+			return render_template('addPermission.html', successfulAdd='*Permission Failed - Staff ' + username + ' does not work for ' + airline_name)
 	else:
-		cursor.close()
-		return render_template('addPermission.html', successfulAdd='*Permission Failed - Staff ' + username + ' does not work for ' + airline_name)
+		return render_template('login.html', message='Login in to access page.')
 
 @app.route('/addBookingAgent', methods=['GET', 'POST'])
 def addBookingAgent():
-	cursor = conn.cursor()
-	cursor.execute("SELECT airline_name FROM airline_staff WHERE username = %s", (session['username'],))
-	airline_name = cursor.fetchone()[0]
-	cursor.close()
-	return render_template('addBookingAgent.html', airline_name=airline_name)
+	if 'admin' in session:
+		cursor = conn.cursor()
+		cursor.execute("SELECT airline_name FROM airline_staff WHERE username = %s", (session['username'],))
+		airline_name = cursor.fetchone()[0]
+		cursor.close()
+		return render_template('addBookingAgent.html', airline_name=airline_name)
+	else:
+		return render_template('login.html', message='Login in to access page.')
 
 @app.route('/addBookingAgentRequest', methods=['GET', 'POST'])
 def addBookingAgentRequest():
-	airline_name = request.form.get('airline_name')
-	booking_agent_email = request.form['booking_agent_email']
+	if 'admin' in session:
+		airline_name = request.form.get('airline_name')
+		booking_agent_email = request.form['booking_agent_email']
 
-	cursor = conn.cursor()
-	cursor = conn.cursor()
-	sql = "SELECT 1 FROM booking_agent WHERE booking_agent_email = %s LIMIT 1"
-	cursor.execute(sql, (booking_agent_email))
-	result = cursor.fetchone()
+		cursor = conn.cursor()
+		cursor = conn.cursor()
+		sql = "SELECT 1 FROM booking_agent WHERE booking_agent_email = %s LIMIT 1"
+		cursor.execute(sql, (booking_agent_email))
+		result = cursor.fetchone()
 
-	if result:
-		cursor.execute("INSERT INTO works_for VALUES (%s, %s)",
-						(airline_name, booking_agent_email))
-		conn.commit()
-		cursor.close()
-		return render_template('searchFlights.html', successfulAdd='Successfully Added ' + booking_agent_email + ' To ' + airline_name, sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...')
+		if result:
+			cursor.execute("INSERT INTO works_for VALUES (%s, %s)",
+							(airline_name, booking_agent_email))
+			conn.commit()
+			cursor.close()
+			return render_template('searchFlights.html', successfulAdd='Successfully Added ' + booking_agent_email + ' To ' + airline_name, sourcePlaceholder='From airport/city...', destPlaceholder='To airport/city...')
+		else:
+			cursor.close()
+			return render_template('addBookingAgent.html', successfulAdd=booking_agent_email + ' is not registered', airline_name=airline_name)
 	else:
-		cursor.close()
-		return render_template('addBookingAgent.html', successfulAdd=booking_agent_email + ' is not registered', airline_name=airline_name)
+		return render_template('login.html', message='Login in to access page.')
 
 @app.route('/searchCustomer', methods=['GET', 'POST'])
 def searchCustomer():
-	cursor = conn.cursor()
-	cursor.execute("SELECT airline_name FROM airline_staff WHERE username = %s", (session['username'],))
-	airline_name = cursor.fetchone()[0]
-	cursor.close()
+	if 'airline_staff' in session:
+		cursor = conn.cursor()
+		cursor.execute("SELECT airline_name FROM airline_staff WHERE username = %s", (session['username'],))
+		airline_name = cursor.fetchone()[0]
+		cursor.close()
 
-	cursor = conn.cursor()
-	sql = """
-			SELECT c.c_name, COUNT(t.ticket_id) AS ticket_count, c.cust_email
-			FROM ticket t
-			INNER JOIN customer c ON t.cust_email = c.cust_email
-			INNER JOIN flight f ON t.flight_num = f.flight_num
-			WHERE f.airline_name = %s
-			GROUP BY c.c_name
-			ORDER BY ticket_count DESC
-			LIMIT %s
-		"""
-	cursor.execute(sql, (airline_name, 10))
-	customers = cursor.fetchall()
-	cursor.close()
+		cursor = conn.cursor()
+		sql = """
+				SELECT c.c_name, COUNT(t.ticket_id) AS ticket_count, c.cust_email
+				FROM ticket t
+				INNER JOIN customer c ON t.cust_email = c.cust_email
+				INNER JOIN flight f ON t.flight_num = f.flight_num
+				WHERE f.airline_name = %s
+				GROUP BY c.c_name
+				ORDER BY ticket_count DESC
+				LIMIT %s
+			"""
+		cursor.execute(sql, (airline_name, 10))
+		customers = cursor.fetchall()
+		cursor.close()
 
-	return render_template('searchCustomer.html', cust_email='Enter customer email...', custNum='XXXX', cust_heading='Most Frequent Customers', customers=customers, result=False, airline_name=airline_name)
+		return render_template('searchCustomer.html', cust_email='Enter customer email...', custNum='XXXX', cust_heading='Most Frequent Customers', customers=customers, result=False, airline_name=airline_name)
+	else:
+		return render_template('login.html', message='Login in to access page.')
 
 @app.route('/searchCustomerResult', methods=['GET', 'POST'])
 def searchCustomerResult():
-	airline_name = request.args.get('airline_name')
-	cust_email_unhide = request.form.get('cust_email')
-	cust_email_hide = request.args.get('cust_email_hide')
-	custNum = request.form.get('custNum')
-	print(custNum)
+	if 'airline_staff' in session:
+		airline_name = request.args.get('airline_name')
+		cust_email_unhide = request.form.get('cust_email')
+		cust_email_hide = request.args.get('cust_email_hide')
+		custNum = request.form.get('custNum')
+		if cust_email_unhide:
+			cust_email = cust_email_unhide
+		else:
+			cust_email = cust_email_hide
 
-	if cust_email_unhide:
-		cust_email = cust_email_unhide
-	else:
-		cust_email = cust_email_hide
-
-	cursor = conn.cursor()
-	sql = "SELECT c_name FROM customer WHERE cust_email = %s"
-	cursor.execute(sql, (cust_email,))
-	c_name = cursor.fetchone()[0]
-
-	if custNum:
 		cursor = conn.cursor()
-		cursor.execute("SELECT RIGHT(phone_number, 4) FROM customer WHERE cust_email = %s", (cust_email,))
-		result = cursor.fetchone()[0]
+		sql = "SELECT c_name FROM customer WHERE cust_email = %s"
+		cursor.execute(sql, (cust_email,))
+		c_name = cursor.fetchone()[0]
 
-		if result == custNum:
+		if custNum:
+			cursor = conn.cursor()
+			cursor.execute("SELECT RIGHT(phone_number, 4) FROM customer WHERE cust_email = %s", (cust_email,))
+			result = cursor.fetchone()[0]
+
+			if result == custNum:
+				cursor = conn.cursor()
+				sql = """
+					SELECT 
+						f.airline_name, 
+						f.flight_num, 
+						TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
+						TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
+						f.price,
+						DATE(f.departure_time) AS formatted_departure_date,
+						a.airport_name,
+						a.airport_city
+					FROM 
+						ticket t
+					INNER JOIN 
+						customer c ON t.cust_email = c.cust_email
+					INNER JOIN 
+						flight f ON t.flight_num = f.flight_num
+					INNER JOIN 
+						airport a ON f.depart_airport_name = a.airport_name
+					WHERE 
+						f.airline_name = %s
+						AND c.cust_email = %s;
+				"""
+				cursor.execute(sql, (airline_name, cust_email))
+				customerData = cursor.fetchall()
+				cursor.close()
+
+				return render_template('searchCustomer.html', cust_email=cust_email, custNum=custNum, cust_heading='Most Frequent Customers', result=True, customerData=customerData)
+			else:
+					return render_template('searchCustomer.html', cust_heading='User Not Found', result=True, message='Customer information does not match. Please try again.', cust_email='Enter customer email...', custNum='XXXX')
+		else:
 			cursor = conn.cursor()
 			sql = """
 				SELECT 
@@ -1901,41 +1822,12 @@ def searchCustomerResult():
 			customerData = cursor.fetchall()
 			cursor.close()
 
-			return render_template('searchCustomer.html', cust_email=cust_email, custNum=custNum, cust_heading='Most Frequent Customers', result=True, customerData=customerData)
-		else:
-				return render_template('searchCustomer.html', cust_heading='User Not Found', result=True, message='Customer information does not match. Please try again.', cust_email='Enter customer email...', custNum='XXXX')
+			print(customerData[0])
+
+			return render_template('searchCustomer.html', cust_email=cust_email, custNum='XXXX', cust_heading=c_name+'\'s History', result=True, customerData=customerData)
 	else:
-		cursor = conn.cursor()
-		sql = """
-			SELECT 
-				f.airline_name, 
-				f.flight_num, 
-				TIME_FORMAT(f.departure_time, '%%H:%%i') AS formatted_departure_time, 
-				TIME_FORMAT(f.arrival_time, '%%H:%%i') AS formatted_arrival_time, 
-				f.price,
-				DATE(f.departure_time) AS formatted_departure_date,
-				a.airport_name,
-				a.airport_city
-			FROM 
-				ticket t
-			INNER JOIN 
-				customer c ON t.cust_email = c.cust_email
-			INNER JOIN 
-				flight f ON t.flight_num = f.flight_num
-			INNER JOIN 
-				airport a ON f.depart_airport_name = a.airport_name
-			WHERE 
-				f.airline_name = %s
-				AND c.cust_email = %s;
-		"""
-		cursor.execute(sql, (airline_name, cust_email))
-		customerData = cursor.fetchall()
-		cursor.close()
-
-		print(customerData[0])
-
-		return render_template('searchCustomer.html', cust_email=cust_email, custNum='XXXX', cust_heading=c_name+'\'s History', result=True, customerData=customerData)
-		
+		return render_template('login.html', message='Login in to access page.')
+	
 app.secret_key = 'its a secret shhhhhhh'
 #Run the app on localhost port 5000
 #debug = True -> you don't have to restart flask
