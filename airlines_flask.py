@@ -1308,7 +1308,6 @@ def bookFlight():
 	cursor = conn.cursor()
 	cursor.execute("SELECT MAX(ticket_id) FROM ticket ORDER BY ticket_id")
 	last_ticket_id = cursor.fetchone()
-	print(last_ticket_id)
 
 	if last_ticket_id is None:
 		last_ticket_id = 0
@@ -1355,12 +1354,12 @@ def bookFlight():
 	else:
 		return render_template('login.html', message='Log in to book your tickets!')
 
-def ticket_id_exists(ticket_id):
-		cursor = conn.cursor()
-		cursor.execute("SELECT COUNT(*) FROM ticket WHERE ticket_id = %s", ticket_id)
-		count = cursor.fetchone()[0]
-		cursor.close()
-		return count > 0
+# def ticket_id_exists(ticket_id):
+# 		cursor = conn.cursor()
+# 		cursor.execute("SELECT COUNT(*) FROM ticket WHERE ticket_id = %s", ticket_id)
+# 		count = cursor.fetchone()[0]
+# 		cursor.close()
+# 		return count > 0
 
 @app.route('/bookFlights')
 def bookFlights():
@@ -1464,7 +1463,6 @@ def awards():
 		one_month_ago = current_date - timedelta(days=30)
 		one_year_ago = current_date - timedelta(days=365)
 
-		# Query to get the top 5 booking agents based on ticket sales for the past month
 		query_month = """
 							SELECT 
 								t.booking_agent_id, 
@@ -1742,6 +1740,7 @@ def addPermissionRequest():
 @app.route('/addBookingAgent', methods=['GET', 'POST'])
 def addBookingAgent():
 	if 'admin' in session:
+		conn.ping(reconnect=True)
 		cursor = conn.cursor()
 		cursor.execute("SELECT airline_name FROM airline_staff WHERE username = %s", (session['username'],))
 		airline_name = cursor.fetchone()[0]
