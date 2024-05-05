@@ -131,7 +131,47 @@ def staffRegistration():
 def customerInterface():
 	if 'customer' in session:
 		cust_name = request.args.get('cust_name', 'again')
-		return render_template('customerInterface.html', cust_name=cust_name)
+		cursor = conn.cursor()
+		sql = """
+				SELECT a.airport_city, COUNT(*) AS ticket_count
+				FROM ticket t
+				INNER JOIN flight f ON t.flight_num = f.flight_num
+				INNER JOIN airport a ON f.arrival_airport_name = a.airport_name
+				GROUP BY a.airport_city
+				ORDER BY ticket_count DESC
+				LIMIT 10
+				"""
+		cursor.execute(sql)
+		top_cities = cursor.fetchall()
+		cursor.close()
+
+		cursor = conn.cursor()
+		sql = """
+				SELECT 
+					a.airport_city, 
+					f.flight_num, 
+					DATE_FORMAT(f.departure_time, '%m/%d/%Y') AS departure_date, 
+					(ap.total_seats - COUNT(t.flight_num)) AS seats_left
+				FROM 
+					flight f
+				INNER JOIN 
+					airport a ON f.arrival_airport_name = a.airport_name
+				LEFT JOIN 
+					ticket t ON f.flight_num = t.flight_num
+				INNER JOIN 
+					airplane ap ON f.airplane_id = ap.airplane_id
+				WHERE
+					f.flight_status = 'upcoming'
+				GROUP BY 
+					f.flight_num
+				ORDER BY 
+					seats_left
+				LIMIT 3;
+				"""
+		cursor.execute(sql)
+		top_flights = cursor.fetchall()
+		cursor.close()
+		return render_template('customerInterface.html', cust_name=cust_name,top_flights=top_flights, top_cities=top_cities)
 	else:
 		return render_template('login.html', message='Login in to access page.')
 
@@ -279,6 +319,8 @@ def searchFlights():
 				cursor.execute(flight_sql, session['username'])
 			elif 'airline_staff' in session:
 				cursor.execute(flight_sql, session['username'])
+			elif 'customer' in session:
+				cursor.execute(flight_sql)
 			else:
 				cursor.execute(flight_sql)
 			flights = cursor.fetchall()
