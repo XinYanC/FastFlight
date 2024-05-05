@@ -1306,8 +1306,9 @@ def bookFlight():
 
 	conn.ping(reconnect=True)
 	cursor = conn.cursor()
-	cursor.execute("SELECT ticket_id FROM ticket ORDER BY booking_date DESC LIMIT 1")
+	cursor.execute("SELECT MAX(ticket_id) FROM ticket ORDER BY ticket_id")
 	last_ticket_id = cursor.fetchone()
+	print(last_ticket_id)
 
 	if last_ticket_id is None:
 		last_ticket_id = 0
