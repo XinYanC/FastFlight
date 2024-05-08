@@ -95,6 +95,8 @@ def home():
 				f.flight_status = 'upcoming'
 			GROUP BY 
 				f.flight_num
+			HAVING
+				seats_left > 0
 			ORDER BY 
 				seats_left
 			LIMIT 3;
